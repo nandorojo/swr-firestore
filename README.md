@@ -29,7 +29,9 @@ const fuego = new Fuego({
 })
 
 export default () => {
-  return <FuegoProvider>{/* Your app code here! */}</FuegoProvider>
+  return (
+    <FuegoProvider fuego={fuego}>{/* Your app code here! */}</FuegoProvider>
+  )
 }
 ```
 
