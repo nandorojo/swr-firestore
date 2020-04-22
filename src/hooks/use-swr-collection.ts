@@ -1,7 +1,7 @@
 import useSWR, { mutate, ConfigInterface } from 'swr'
 import { fuego } from '../context'
-import { useRef, useEffect } from 'react'
-import { useMemoOne as useMemo } from 'use-memo-one'
+import { useRef, useEffect, useMemo } from 'react'
+// import { useMemoOne as useMemo } from 'use-memo-one'
 import { empty } from '../helpers/empty'
 
 type Document = { id: string }
@@ -35,7 +35,7 @@ type Ref = {
 type Path = string
 type Listen = boolean
 
-type SwrKey = [Path, Listen, Ref]
+type SwrKey = [Path, Listen, string]
 
 const createRef = (
   path: string,
@@ -122,9 +122,16 @@ const createListener = <Doc extends Document = Document>(
 type Options<Doc extends Document = Document> = {
   listen?: boolean
 } & ConfigInterface<Doc[] | null>
-
-export const useDocument = <Doc extends Document = Document>(
-  path: string,
+/**
+ * Call a Firestore Collection
+ * @template Doc
+ * @param path String if the document is ready. If it's not ready yet, pass `null`, and the request won't start yet.
+ * @param [query] - Dictionary with options to query the collection.
+ * @param [options] - Dictionary with option `listen`. If true, it will open a socket listener.
+ * @returns
+ */
+export const useCollection = <Doc extends Document = Document>(
+  path: string | null,
   query: Ref = empty.object,
   options: Options<Doc> = empty.object
 ) => {
@@ -135,17 +142,24 @@ export const useDocument = <Doc extends Document = Document>(
 
   const { where, endAt, endBefore, startAfter, startAt, orderBy, limit } = query
 
-  const memoQuery = useMemo(
-    () => ({ where, endAt, endBefore, startAfter, startAt, orderBy, limit }),
+  const memoQueryString = useMemo(
+    () =>
+      JSON.stringify({
+        where,
+        endAt,
+        endBefore,
+        startAfter,
+        startAt,
+        orderBy,
+        limit,
+      }),
     [endAt, endBefore, limit, orderBy, startAfter, startAt, where]
   )
 
-  const key: SwrKey = [path, listen, memoQuery]
-
   const swr = useSWR<Doc[] | null>(
-    key,
-    async (...args: typeof key) => {
-      const [path, listen, query] = args
+    // if the path is null, this means we don't want to fetch yet.
+    path === null ? null : [path, listen, memoQueryString],
+    async (...[path, listen, queryString]: SwrKey) => {
       if (listen) {
         if (unsubscribeRef.current) {
           unsubscribeRef.current()
@@ -154,6 +168,7 @@ export const useDocument = <Doc extends Document = Document>(
         unsubscribeRef.current = unsubscribe
         return latestData()
       }
+      const query: Ref = JSON.parse(queryString) ?? {}
       const ref = createRef(path, query)
       const data: Doc[] = await ref.get().then(querySnapshot => {
         const array: typeof data = []
@@ -182,8 +197,8 @@ export const useDocument = <Doc extends Document = Document>(
         unsubscribeRef.current = null
       }
     }
-    // should depend on the path, and listen being the same...
-  }, [path, listen, memoQuery])
+    // should depend on the path, queyr, and listen being the same...
+  }, [path, listen, memoQueryString])
 
   return swr
 }
