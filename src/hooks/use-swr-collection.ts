@@ -200,5 +200,7 @@ export const useCollection = <Doc extends Document = Document>(
     // should depend on the path, queyr, and listen being the same...
   }, [path, listen, memoQueryString])
 
-  return swr
+  const { data, isValidating, revalidate, mutate, error } = swr
+
+  return { data, isValidating, revalidate, mutate, error }
 }

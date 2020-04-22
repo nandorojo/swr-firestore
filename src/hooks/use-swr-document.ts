@@ -9,9 +9,7 @@ type Options<Doc extends Document = Document> = {
   listen?: boolean
 } & ConfigInterface<Doc | null>
 
-const createListener = <Doc extends Document = Document>(
-  path: string | null
-) => {
+const createListener = <Doc extends Document = Document>(path: string) => {
   let data: Doc | null = null
   const unsubscribe = fuego.db.doc(path).onSnapshot(doc => {
     const docData = doc.data() ?? empty.object
@@ -111,7 +109,17 @@ export const useDocument = <Doc extends Document = Document>(
     [listen, path]
   )
 
-  return { ...swr, set, update }
+  const { data, isValidating, revalidate, mutate: connectedMutate, error } = swr
+
+  return {
+    data,
+    isValidating,
+    revalidate,
+    mutate: connectedMutate,
+    error,
+    set,
+    update,
+  }
 }
 
 // const useSubscription = (path: string) => {
