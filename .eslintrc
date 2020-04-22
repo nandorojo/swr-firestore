@@ -1,0 +1,7 @@
+{
+	"extends": ["nando"],
+	"rules": {
+		"@typescript-eslint/indent": "off",
+		"@typescript-eslint/prefer-interface": "off"
+	}
+}
