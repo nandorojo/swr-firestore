@@ -2,7 +2,7 @@
 
 React hooks for Firestore, that you can actually use in production, on every screen.
 
-This library is built on top of [useSWR](swr.now.sh), meaning you get all of its awesome benefits out-of-the-box.
+This library is built on top of [useSWR](https://swr.now.sh), meaning you get all of its awesome benefits out-of-the-box.
 
 ## Installation
 
