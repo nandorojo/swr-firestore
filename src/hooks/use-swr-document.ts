@@ -73,10 +73,14 @@ export const useDocument = <Doc extends Document = Document>(
   }, [path, listen])
 
   const set = useCallback(
-    <Data>(data: Data, options?: SetOptions) => {
+    (
+      data: Partial<Omit<Doc, 'id' | 'hasPendingWrites' | 'exists'>>,
+      options?: SetOptions
+    ) => {
       if (!listen) {
         // we only update the local cache if we don't have a listener set up
         mutate(path, (prevState = empty.object) => {
+          // default we set merge to be true. but if it's false, then we don't merge old data
           if (options?.merge === false) return data
           return {
             ...prevState,
@@ -84,13 +88,14 @@ export const useDocument = <Doc extends Document = Document>(
           }
         })
       }
+      if (!path) return null
       return fuego.db.doc(path).set(data, options)
     },
     [path, listen]
   )
 
   const update = useCallback(
-    <Data>(data: Data) => {
+    (data: Partial<Omit<Doc, 'id' | 'hasPendingWrites' | 'exists'>>) => {
       if (!listen) {
         // we only update the local cache if we don't have a listener set up
         mutate(path, (prevState = empty.object) => {
@@ -100,6 +105,7 @@ export const useDocument = <Doc extends Document = Document>(
           }
         })
       }
+      if (!path) return null
       return fuego.db.doc(path).update(data)
     },
     [listen, path]
