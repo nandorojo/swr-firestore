@@ -1,8 +1,8 @@
 import useSWR, { mutate, ConfigInterface } from 'swr'
-import { fuego } from 'src/context'
+import { fuego } from '../context'
 import { useRef, useEffect } from 'react'
 import { useMemoOne as useMemo } from 'use-memo-one'
-import { empty } from 'src/helpers/empty'
+import { empty } from '../helpers/empty'
 
 type Document = { id: string }
 

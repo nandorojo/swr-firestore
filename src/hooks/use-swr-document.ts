@@ -1,8 +1,8 @@
 import useSWR, { mutate, ConfigInterface } from 'swr'
-import { fuego } from 'src/context'
+import { fuego } from '../context'
 import { useRef, useEffect, useCallback } from 'react'
-import { empty } from 'src/helpers/empty'
-import { Document } from 'src/types/Document'
+import { empty } from '../helpers/empty'
+import { Document } from '../types/Document'
 import { SetOptions } from '@firebase/firestore-types'
 
 type Options<Doc extends Document = Document> = {
@@ -106,23 +106,23 @@ export const useDocument = <Doc extends Document = Document>(
   return { ...swr, set, update }
 }
 
-const useSubscription = (path: string) => {
-  const unsubscribeRef = useRef<
-    ReturnType<typeof createListener>['unsubscribe'] | null
-  >(null)
+// const useSubscription = (path: string) => {
+//   const unsubscribeRef = useRef<
+//     ReturnType<typeof createListener>['unsubscribe'] | null
+//   >(null)
 
-  const swr = useSWR([path], path => {
-    const { unsubscribe, latestData } = createListener(path)
-    unsubscribeRef.current = unsubscribe
-    return latestData()
-  })
+//   const swr = useSWR([path], path => {
+//     const { unsubscribe, latestData } = createListener(path)
+//     unsubscribeRef.current = unsubscribe
+//     return latestData()
+//   })
 
-  useEffect(() => {
-    return () => {
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current()
-      }
-    }
-  }, [path])
-  return swr
-}
+//   useEffect(() => {
+//     return () => {
+//       if (unsubscribeRef.current) {
+//         unsubscribeRef.current()
+//       }
+//     }
+//   }, [path])
+//   return swr
+// }
