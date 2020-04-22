@@ -1,4 +1,4 @@
-# @nandorojo/fuego
+# @nandorojo/swr-firestore
 
 React hooks for Firestore, that you can actually use in production, on every screen.
 
