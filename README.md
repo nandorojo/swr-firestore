@@ -2,6 +2,8 @@
 
 React hooks for Firestore, that you can actually use in production, on every screen.
 
+This library is built on top of [useSWR](swr.now.sh), meaning you get all of its awesome benefits out-of-the-box.
+
 ## Installation
 
 ```sh
@@ -41,7 +43,7 @@ Make sure to create your `Fuego` instance outside of the component. The only arg
 
 ```js
 import React from 'react'
-import { useDocument } from '@nandorojo/fuego'
+import { useDocument, useCollection } from '@nandorojo/fuego'
 
 const user = { id: 'Fernando' }
 export default () => {
