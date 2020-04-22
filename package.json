@@ -1,109 +1,109 @@
 {
-	"name": "@nandorojo/fuego",
-	"version": "1.0.0-swr",
-	"description": "React hooks for Firestore, that you can actually use in production, on every screen.",
-	"main": "lib/commonjs/index.js",
-	"module": "lib/module/index.js",
-	"types": "lib/typescript/src/index.d.ts",
-	"react-native": "src/index.tsx",
-	"files": [
-		"src",
-		"lib"
-	],
-	"scripts": {
-		"test": "jest",
-		"typescript": "tsc --noEmit",
-		"lint": "eslint --ext .js,.ts,.tsx .",
-		"prepare": "bob build",
-		"release": "release-it",
-		"example": "yarn --cwd example",
-		"pods": "cd example/ios && node -e \"process.exit(require('os').platform() === 'darwin')\" || pod install",
-		"bootstrap": "yarn example && yarn && yarn pods"
-	},
-	"keywords": [
-		"react-native",
-		"ios",
-		"android"
-	],
-	"repository": "https://github.com/nandorojo/nandorojo-fu",
-	"author": "Fernando Rojo <frojo@sas.upenn.edu> (https://github.com/nandorojo)",
-	"license": "MIT",
-	"bugs": {
-		"url": "https://github.com/nandorojo/nandorojo-fu/issues"
-	},
-	"homepage": "https://github.com/nandorojo/nandorojo-fu#readme",
-	"devDependencies": {
-		"@commitlint/config-conventional": "^8.3.4",
-		"@firebase/firestore-types": "^1.10.1",
-		"@react-native-community/bob": "^0.10.1",
-		"@react-native-community/eslint-config": "^0.0.7",
-		"@release-it/conventional-changelog": "^1.1.0",
-		"@types/jest": "^25.1.2",
-		"@types/react": "^16.9.19",
-		"@types/react-native": "0.61.10",
-		"commitlint": "^8.3.4",
-		"eslint": "^6.8.0",
-		"eslint-config-nando": "^1.0.9",
-		"eslint-config-prettier": "^6.10.0",
-		"eslint-plugin-prettier": "^3.1.2",
-		"firebase": "^7.14.1",
-		"husky": "^4.0.1",
-		"jest": "^25.1.0",
-		"prettier": "^1.19.1",
-		"react": "~16.9.0",
-		"react-native": "~0.61.5",
-		"release-it": "^12.6.3",
-		"typescript": "^3.7.5"
-	},
-	"peerDependencies": {
-		"react": "*",
-		"react-native": "*"
-	},
-	"jest": {
-		"preset": "react-native",
-		"modulePathIgnorePatterns": [
-			"<rootDir>/example/node_modules",
-			"<rootDir>/lib/"
-		]
-	},
-	"husky": {
-		"hooks": {
-			"commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
-			"pre-commit": "yarn lint && yarn typescript"
-		}
-	},
-	"eslintIgnore": [
-		"node_modules/",
-		"lib/"
-	],
-	"release-it": {
-		"git": {
-			"commitMessage": "chore: release %s",
-			"tagName": "v%s"
-		},
-		"npm": {
-			"publish": true
-		},
-		"github": {
-			"release": true
-		},
-		"plugins": {
-			"@release-it/conventional-changelog": {
-				"preset": "angular"
-			}
-		}
-	},
-	"@react-native-community/bob": {
-		"source": "src",
-		"output": "lib",
-		"targets": [
-			"commonjs",
-			"module",
-			"typescript"
-		]
-	},
-	"dependencies": {
-		"swr": "^0.2.0",
-		"use-memo-one": "^1.1.1"
-	}
+  "name": "@nandorojo/firestore-swr",
+  "version": "1.0.0-swr",
+  "description": "React hooks for Firestore, that you can actually use in production, on every screen.",
+  "main": "lib/commonjs/index.js",
+  "module": "lib/module/index.js",
+  "types": "lib/typescript/src/index.d.ts",
+  "react-native": "src/index.tsx",
+  "files": [
+    "src",
+    "lib"
+  ],
+  "scripts": {
+    "test": "jest",
+    "typescript": "tsc --noEmit",
+    "lint": "eslint --ext .js,.ts,.tsx .",
+    "prepare": "bob build",
+    "release": "release-it",
+    "example": "yarn --cwd example",
+    "pods": "cd example/ios && node -e \"process.exit(require('os').platform() === 'darwin')\" || pod install",
+    "bootstrap": "yarn example && yarn && yarn pods"
+  },
+  "keywords": [
+    "react-native",
+    "ios",
+    "android"
+  ],
+  "repository": "https://github.com/nandorojo/nandorojo-fu",
+  "author": "Fernando Rojo <frojo@sas.upenn.edu> (https://github.com/nandorojo)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nandorojo/nandorojo-fu/issues"
+  },
+  "homepage": "https://github.com/nandorojo/nandorojo-fu#readme",
+  "devDependencies": {
+    "@commitlint/config-conventional": "^8.3.4",
+    "@firebase/firestore-types": "^1.10.1",
+    "@react-native-community/bob": "^0.10.1",
+    "@react-native-community/eslint-config": "^0.0.7",
+    "@release-it/conventional-changelog": "^1.1.0",
+    "@types/jest": "^25.1.2",
+    "@types/react": "^16.9.19",
+    "@types/react-native": "0.61.10",
+    "commitlint": "^8.3.4",
+    "eslint": "^6.8.0",
+    "eslint-config-nando": "^1.0.9",
+    "eslint-config-prettier": "^6.10.0",
+    "eslint-plugin-prettier": "^3.1.2",
+    "firebase": "^7.14.1",
+    "husky": "^4.0.1",
+    "jest": "^25.1.0",
+    "prettier": "^1.19.1",
+    "react": "~16.9.0",
+    "react-native": "~0.61.5",
+    "release-it": "^12.6.3",
+    "typescript": "^3.7.5"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  },
+  "jest": {
+    "preset": "react-native",
+    "modulePathIgnorePatterns": [
+      "<rootDir>/example/node_modules",
+      "<rootDir>/lib/"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
+      "pre-commit": "yarn lint && yarn typescript"
+    }
+  },
+  "eslintIgnore": [
+    "node_modules/",
+    "lib/"
+  ],
+  "release-it": {
+    "git": {
+      "commitMessage": "chore: release %s",
+      "tagName": "v%s"
+    },
+    "npm": {
+      "publish": true
+    },
+    "github": {
+      "release": true
+    },
+    "plugins": {
+      "@release-it/conventional-changelog": {
+        "preset": "angular"
+      }
+    }
+  },
+  "@react-native-community/bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      "commonjs",
+      "module",
+      "typescript"
+    ]
+  },
+  "dependencies": {
+    "swr": "^0.2.0",
+    "use-memo-one": "^1.1.1"
+  }
 }

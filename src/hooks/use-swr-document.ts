@@ -1,8 +1,9 @@
 import useSWR, { mutate, ConfigInterface } from 'swr'
 import { fuego } from 'src/context'
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useCallback } from 'react'
 import { empty } from 'src/helpers/empty'
 import { Document } from 'src/types/Document'
+import { SetOptions } from '@firebase/firestore-types'
 
 type Options<Doc extends Document = Document> = {
   listen?: boolean
@@ -69,7 +70,40 @@ export const useDocument = <Doc extends Document = Document>(
     // should depend on the path, and listen being the same...
   }, [path, listen])
 
-  return swr
+  const set = useCallback(
+    <Data>(data: Data, options?: SetOptions) => {
+      if (!listen) {
+        // we only update the local cache if we don't have a listener set up
+        mutate(path, (prevState = empty.object) => {
+          if (options?.merge === false) return data
+          return {
+            ...prevState,
+            ...data,
+          }
+        })
+      }
+      return fuego.db.doc(path).set(data, options)
+    },
+    [path, listen]
+  )
+
+  const update = useCallback(
+    <Data>(data: Data) => {
+      if (!listen) {
+        // we only update the local cache if we don't have a listener set up
+        mutate(path, (prevState = empty.object) => {
+          return {
+            ...prevState,
+            ...data,
+          }
+        })
+      }
+      return fuego.db.doc(path).update(data)
+    },
+    [listen, path]
+  )
+
+  return { ...swr, set, update }
 }
 
 const useSubscription = (path: string) => {
