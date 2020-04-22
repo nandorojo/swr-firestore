@@ -1,7 +1,7 @@
 {
-  "name": "@nandorojo/firestore-swr",
-  "version": "1.0.0-swr",
-  "description": "React hooks for Firestore, that you can actually use in production, on every screen.",
+  "name": "@nandorojo/swr-firestore",
+  "version": "1.0.0",
+  "description": "SWR React hooks for Firestore, that you can actually use in production, on every screen.",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",
   "types": "lib/typescript/src/index.d.ts",
@@ -25,7 +25,7 @@
     "ios",
     "android"
   ],
-  "repository": "https://github.com/nandorojo/nandorojo-fu",
+  "repository": "https://github.com/nandorojo/swr-firestore",
   "author": "Fernando Rojo <frojo@sas.upenn.edu> (https://github.com/nandorojo)",
   "license": "MIT",
   "bugs": {
