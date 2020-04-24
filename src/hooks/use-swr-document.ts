@@ -19,7 +19,7 @@ const createListener = <Doc extends Document = Document>(path: string) => {
       exists: doc.exists,
       hasPendingWrites: doc.metadata.hasPendingWrites,
     } as any
-    mutate(path, data, false)
+    mutate([path, true], data, false)
   })
   return {
     latestData: () => data,

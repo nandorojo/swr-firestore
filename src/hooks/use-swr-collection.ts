@@ -26,10 +26,37 @@ type Ref = {
   limit?: number
   orderBy?: OrderByType
   where?: WhereType
-  startAt?: number | DocumentSnapshot
-  endAt?: number | DocumentSnapshot
-  startAfter?: number | DocumentSnapshot
-  endBefore?: number | DocumentSnapshot
+
+  /**
+   * For now, this can only be a number, since it has to be JSON serializable.
+   *
+   * **TODO** allow DocumentSnapshot here too. This will probably be used with a useStaticCollection hook in the future.
+   */
+  startAt?: number
+  /**
+   * For now, this can only be a number, since it has to be JSON serializable.
+   *
+   * **TODO** allow DocumentSnapshot here too. This will probably be used with a useStaticCollection hook in the future.
+   */
+  endAt?: number
+  /**
+   * For now, this can only be a number, since it has to be JSON serializable.
+   *
+   * **TODO** allow DocumentSnapshot here too. This will probably be used with a useStaticCollection hook in the future.
+   */
+  startAfter?: number
+  /**
+   * For now, this can only be a number, since it has to be JSON serializable.
+   *
+   * **TODO** allow DocumentSnapshot here too. This will probably be used with a useStaticCollection hook in the future.
+   */
+  endBefore?: number
+
+  // THESE ARE NOT JSON SERIALIZABLE
+  // startAt?: number | DocumentSnapshot
+  // endAt?: number | DocumentSnapshot
+  // startAfter?: number | DocumentSnapshot
+  // endBefore?: number | DocumentSnapshot
 }
 
 type Path = string
@@ -92,8 +119,9 @@ const createRef = (
 
 const createListener = <Doc extends Document = Document>(
   path: string,
-  query: Ref = empty.object
+  queryString: string
 ) => {
+  const query: Ref = JSON.parse(queryString) ?? {}
   let data: Doc[] | null = null
   const ref = createRef(path, query)
 
@@ -110,7 +138,7 @@ const createListener = <Doc extends Document = Document>(
       array.push(docToAdd)
     })
     data = array
-    mutate(path, data, false)
+    mutate([path, true, queryString], data, false)
   })
 
   return {
@@ -164,10 +192,14 @@ export const useCollection = <Doc extends Document = Document>(
         if (unsubscribeRef.current) {
           unsubscribeRef.current()
         }
-        const { unsubscribe, latestData } = createListener<Doc>(path)
+        const { unsubscribe, latestData } = createListener<Doc>(
+          path,
+          queryString
+        )
         unsubscribeRef.current = unsubscribe
         return latestData()
       }
+
       const query: Ref = JSON.parse(queryString) ?? {}
       const ref = createRef(path, query)
       const data: Doc[] = await ref.get().then(querySnapshot => {
