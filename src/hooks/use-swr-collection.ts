@@ -7,7 +7,6 @@ import { empty } from '../helpers/empty'
 type Document = { id: string }
 
 import {
-  DocumentSnapshot,
   FieldPath,
   OrderByDirection,
   WhereFilterOp,
@@ -117,35 +116,68 @@ const createRef = (
   return ref
 }
 
-const createListener = <Doc extends Document = Document>(
+type ListenerReturnType<Doc extends Document = Document> = {
+  initialData: Doc[] | null
+  unsubscribe: ReturnType<ReturnType<typeof fuego['db']['doc']>['onSnapshot']>
+}
+
+const createListenerAsync = async <Doc extends Document = Document>(
   path: string,
   queryString: string
-) => {
-  const query: Ref = JSON.parse(queryString) ?? {}
-  let data: Doc[] | null = null
-  const ref = createRef(path, query)
-
-  const unsubscribe = ref.onSnapshot(querySnapshot => {
-    const array: typeof data = []
-    querySnapshot.forEach(doc => {
-      const docData = doc.data() ?? empty.object
-      const docToAdd = {
-        ...docData,
-        id: doc.id,
-        exists: doc.exists,
-        hasPendingWrites: doc.metadata.hasPendingWrites,
-      } as any
-      array.push(docToAdd)
+): Promise<ListenerReturnType<Doc>> => {
+  return new Promise(resolve => {
+    const query: Ref = JSON.parse(queryString) ?? {}
+    const ref = createRef(path, query)
+    const unsubscribe = ref.onSnapshot(querySnapshot => {
+      const data: Doc[] = []
+      querySnapshot.forEach(doc => {
+        const docData = doc.data() ?? empty.object
+        const docToAdd = {
+          ...docData,
+          id: doc.id,
+          exists: doc.exists,
+          hasPendingWrites: doc.metadata.hasPendingWrites,
+        } as any
+        data.push(docToAdd)
+      })
+      resolve({
+        initialData: data,
+        unsubscribe,
+      })
+      mutate([path, true, queryString], data, false)
     })
-    data = array
-    mutate([path, true, queryString], data, false)
   })
-
-  return {
-    latestData: () => data,
-    unsubscribe,
-  }
 }
+
+// const createListener = <Doc extends Document = Document>(
+//   path: string,
+//   queryString: string
+// ) => {
+//   const query: Ref = JSON.parse(queryString) ?? {}
+//   let data: Doc[] | null = null
+//   const ref = createRef(path, query)
+
+//   const unsubscribe = ref.onSnapshot(querySnapshot => {
+//     const array: typeof data = []
+//     querySnapshot.forEach(doc => {
+//       const docData = doc.data() ?? empty.object
+//       const docToAdd = {
+//         ...docData,
+//         id: doc.id,
+//         exists: doc.exists,
+//         hasPendingWrites: doc.metadata.hasPendingWrites,
+//       } as any
+//       array.push(docToAdd)
+//     })
+//     data = array
+//     mutate([path, true, queryString], data, false)
+//   })
+
+//   return {
+//     latestData: () => data,
+//     unsubscribe,
+//   }
+// }
 
 type Options<Doc extends Document = Document> = {
   listen?: boolean
@@ -163,9 +195,7 @@ export const useCollection = <Doc extends Document = Document>(
   query: Ref = empty.object,
   options: Options<Doc> = empty.object
 ) => {
-  const unsubscribeRef = useRef<
-    ReturnType<typeof createListener>['unsubscribe'] | null
-  >(null)
+  const unsubscribeRef = useRef<ListenerReturnType['unsubscribe'] | null>(null)
   const { listen = false, ...swrOptions } = options
 
   const { where, endAt, endBefore, startAfter, startAt, orderBy, limit } = query
@@ -192,12 +222,12 @@ export const useCollection = <Doc extends Document = Document>(
         if (unsubscribeRef.current) {
           unsubscribeRef.current()
         }
-        const { unsubscribe, latestData } = createListener<Doc>(
+        const { unsubscribe, initialData } = await createListenerAsync<Doc>(
           path,
           queryString
         )
         unsubscribeRef.current = unsubscribe
-        return latestData()
+        return initialData
       }
 
       const query: Ref = JSON.parse(queryString) ?? {}

@@ -9,30 +9,56 @@ type Options<Doc extends Document = Document> = {
   listen?: boolean
 } & ConfigInterface<Doc | null>
 
-const createListener = <Doc extends Document = Document>(path: string) => {
-  let data: Doc | null = null
-  const unsubscribe = fuego.db.doc(path).onSnapshot(doc => {
-    const docData = doc.data() ?? empty.object
-    data = {
-      ...docData,
-      id: doc.id,
-      exists: doc.exists,
-      hasPendingWrites: doc.metadata.hasPendingWrites,
-    } as any
-    mutate([path, true], data, false)
-  })
-  return {
-    latestData: () => data,
-    unsubscribe,
-  }
+// const createListener = <Doc extends Document = Document>(path: string) => {
+//   let data: Doc | null = null
+//   const unsubscribe = fuego.db.doc(path).onSnapshot(doc => {
+//     const docData = doc.data() ?? empty.object
+//     data = {
+//       ...docData,
+//       id: doc.id,
+//       exists: doc.exists,
+//       hasPendingWrites: doc.metadata.hasPendingWrites,
+//     } as any
+//     mutate([path, true], data, false)
+//   })
+//   return {
+//     latestData: () => data,
+//     unsubscribe,
+//   }
+// }
+
+type ListenerReturnType<Doc extends Document = Document> = {
+  initialData: Doc
+  unsubscribe: ReturnType<ReturnType<typeof fuego['db']['doc']>['onSnapshot']>
 }
+
+const createListenerAsync = async <Doc extends Document = Document>(
+  path: string
+): Promise<ListenerReturnType<Doc>> => {
+  return await new Promise(resolve => {
+    const unsubscribe = fuego.db.doc(path).onSnapshot(doc => {
+      const docData = doc.data() ?? empty.object
+      const data = {
+        ...docData,
+        id: doc.id,
+        exists: doc.exists,
+        hasPendingWrites: doc.metadata.hasPendingWrites,
+      } as any
+      // the first time the listener fires, we resolve the promise with initial data
+      resolve({
+        initialData: data,
+        unsubscribe,
+      })
+      mutate([path, true], data, false)
+    })
+  })
+}
+
 export const useDocument = <Doc extends Document = Document>(
   path: string | null,
   options: Options<Doc> = empty.object
 ) => {
-  const unsubscribeRef = useRef<
-    ReturnType<typeof createListener>['unsubscribe'] | null
-  >(null)
+  const unsubscribeRef = useRef<ListenerReturnType['unsubscribe'] | null>(null)
   const { listen = false, ...swrOptions } = options
 
   const swr = useSWR<Doc | null>(
@@ -42,11 +68,13 @@ export const useDocument = <Doc extends Document = Document>(
         if (unsubscribeRef.current) {
           unsubscribeRef.current()
         }
-        const { unsubscribe, latestData } = createListener<Doc>(path)
+        const { unsubscribe, initialData } = await createListenerAsync<Doc>(
+          path
+        )
         unsubscribeRef.current = unsubscribe
-        return latestData()
+        return initialData
       }
-      const data: Doc = (await fuego.db
+      return (await fuego.db
         .doc(path)
         .get()
         .then(doc => ({
@@ -54,7 +82,6 @@ export const useDocument = <Doc extends Document = Document>(
           id: doc.id,
           exists: doc.exists,
         }))) as Doc
-      return data
     },
     swrOptions
   )
