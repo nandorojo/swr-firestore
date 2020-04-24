@@ -49,7 +49,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
         initialData: data,
         unsubscribe,
       })
-      mutate([path, true], data, false)
+      mutate(path, data, false)
     })
   })
 }
@@ -61,10 +61,19 @@ export const useDocument = <Doc extends Document = Document>(
   const unsubscribeRef = useRef<ListenerReturnType['unsubscribe'] | null>(null)
   const { listen = false, ...swrOptions } = options
 
+  // we move listen to a Ref
+  // why? because we shouldn't have to include "listen" in the key
+  // if we do, then calling mutate() won't be consistent for all
+  // documents with the same path.
+  const shouldListen = useRef(listen)
+  useEffect(() => {
+    shouldListen.current = listen
+  })
+
   const swr = useSWR<Doc | null>(
-    path === null ? null : [path, listen],
-    async (path: string, listen: boolean) => {
-      if (listen) {
+    path,
+    async (path: string) => {
+      if (shouldListen.current) {
         if (unsubscribeRef.current) {
           unsubscribeRef.current()
         }

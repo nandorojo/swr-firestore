@@ -59,9 +59,8 @@ type Ref = {
 }
 
 type Path = string
-type Listen = boolean
 
-type SwrKey = [Path, Listen, string]
+type SwrKey = [Path, string]
 
 const createRef = (
   path: string,
@@ -144,7 +143,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
         initialData: data,
         unsubscribe,
       })
-      mutate([path, true, queryString], data, false)
+      mutate([path, queryString], data, false)
     })
   })
 }
@@ -214,11 +213,19 @@ export const useCollection = <Doc extends Document = Document>(
     [endAt, endBefore, limit, orderBy, startAfter, startAt, where]
   )
 
+  // we move listen to a Ref
+  // why? because we shouldn't have to include "listen" in the key
+  // if we do, then calling mutate() won't be consistent for all
+  // collections with the same path & query
+  const shouldListen = useRef(listen)
+  useEffect(() => {
+    shouldListen.current = listen
+  })
   const swr = useSWR<Doc[] | null>(
     // if the path is null, this means we don't want to fetch yet.
-    path === null ? null : [path, listen, memoQueryString],
-    async (...[path, listen, queryString]: SwrKey) => {
-      if (listen) {
+    path === null ? null : [path, memoQueryString],
+    async (...[path, queryString]: SwrKey) => {
+      if (shouldListen.current) {
         if (unsubscribeRef.current) {
           unsubscribeRef.current()
         }
