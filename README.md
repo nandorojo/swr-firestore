@@ -39,6 +39,32 @@ export default () => {
 
 Make sure to create your `Fuego` instance outside of the component. The only argument `Fuego` takes is your firebase `config` variable.
 
+
+Alternatively, you could call `setFuego`:
+
+`App.js`
+
+```jsx
+import React from 'react'
+import { Fuego, setFuego } from '@nandorojo/swr-firestore'
+import 'firebase/firestore'
+import 'firebase/auth'
+
+const firebaseConfig = {
+ // your config here...
+}
+
+setFuego(new Fuego(firebaseConfig))
+
+export default () => {
+  return (
+    /* Your app code here! */}
+  )
+}
+```
+
+**NOTE** This initialization makes it so you no longer have to run `firebase.initializeApp`. It does it for you. 😇
+
 ## Usage
 
 ```js
