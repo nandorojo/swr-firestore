@@ -29,6 +29,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
       mutate(path, data, false)
       if (
         __DEV__ &&
+        // @ts-ignore
         (docData.exists || docData.id || docData.hasPendingWrites)
       ) {
         console.warn(
@@ -102,6 +103,7 @@ export const useDocument = <Doc extends Document = Document>(
           const docData = doc.data() ?? empty.object
           if (
             __DEV__ &&
+            // @ts-ignore
             (docData.exists || docData.id || docData.hasPendingWrites)
           ) {
             console.warn(

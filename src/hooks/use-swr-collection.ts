@@ -135,6 +135,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
         } as any
         if (
           __DEV__ &&
+          // @ts-ignore
           (docData.exists || docData.id || docData.hasPendingWrites)
         ) {
           console.warn(
@@ -243,6 +244,7 @@ export const useCollection = <Doc extends Document = Document>(
           mutateStatic(`${path}/${doc.id}`, docToAdd, false)
           if (
             __DEV__ &&
+            // @ts-ignore
             (docData.exists || docData.id || docData.hasPendingWrites)
           ) {
             console.warn(
