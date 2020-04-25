@@ -45,7 +45,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
       collection = collection.join('')
       if (collection) {
         mutate(
-          collection,
+          [collection],
           (currentState: Doc[] = empty.array): Doc[] => {
             return currentState.map(document => {
               if (document.id === doc.id) {
@@ -126,7 +126,7 @@ export const useDocument = <Doc extends Document = Document>(
       collection = collection.join('')
       if (collection) {
         mutate(
-          collection,
+          [collection],
           (currentState: Doc[] = empty.array): Doc[] => {
             return currentState.map(document => {
               if (document.id === data.id) {

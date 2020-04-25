@@ -148,11 +148,13 @@ const createListenerAsync = async <Doc extends Document = Document>(
         mutateStatic(`${path}/${doc.id}`, docToAdd, false)
         data.push(docToAdd)
       })
+      // resolve initial data
       resolve({
         initialData: data,
         unsubscribe,
       })
-      mutateStatic(path, data, false)
+      // update on listener fire
+      mutateStatic([path, queryString], data, false)
     })
   })
 }
@@ -192,16 +194,6 @@ export const useCollection = <Doc extends Document = Document>(
       }),
     [endAt, endBefore, limit, orderBy, startAfter, startAt, where]
   )
-  // stringify the JSON serializable query
-  // this lets us use it in useSWR
-  // why not pass it as a variable directly in the useSWR key?
-  // to enable UNIVERSAL DATA SHARING
-  // UNIVERSAL DATA SHARING -> COLLECTION -> DOCUMENT -> COLLECTION
-  // if we pass it to the key, then data is NOT just shared based on document/collection path
-  const queryString = useRef(memoQueryString)
-  useEffect(() => {
-    queryString.current = memoQueryString
-  })
 
   // we move listen to a Ref
   // why? because we shouldn't have to include "listen" in the key
@@ -214,21 +206,21 @@ export const useCollection = <Doc extends Document = Document>(
 
   const swr = useSWR<Doc[] | null>(
     // if the path is null, this means we don't want to fetch yet.
-    path,
-    async (path: string) => {
+    [path, memoQueryString],
+    async (path: string, queryString: string) => {
       if (shouldListen.current) {
         if (unsubscribeRef.current) {
           unsubscribeRef.current()
         }
         const { unsubscribe, initialData } = await createListenerAsync<Doc>(
           path,
-          queryString.current
+          queryString
         )
         unsubscribeRef.current = unsubscribe
         return initialData
       }
 
-      const query: Ref = JSON.parse(queryString.current) ?? {}
+      const query: Ref = JSON.parse(queryString) ?? {}
       const ref = createRef(path, query)
       const data: Doc[] = await ref.get().then(querySnapshot => {
         const array: typeof data = []
@@ -262,21 +254,21 @@ export const useCollection = <Doc extends Document = Document>(
     swrOptions
   )
 
-  // if listen or memoQueryString change,
+  // if listen or changes,
   // we run revalidate.
   // This triggers SWR to fetch again
-  // Why? because we don't want to put listen or memoQueryString
+  // Why? because we don't want to put listen
   // in the useSWR key. If we did, then we couldn't mutate
-  // based on path. If we had useSWR(['users', { where: ['name', '==, 'fernando']}]),
-  // and we updated the proper `user` dictionary, it wouldn't mutate, because of
-  // the key.
-  // thus, we move the `listen` and `queryString` options to refs passed to `useSWR`,
-  // and we call `revalidate` if either of them change.
+  // based on query alone. If we had useSWR(['users', true]),
+  // but then a `users` fetch with `listen` set to `false` updated, it wouldn't mutate both.
+  // thus, we move the `listen` and option to a ref user in `useSWR`,
+  // and we call `revalidate` if it changes.
   useEffect(() => {
     if (revalidateRef.current) revalidateRef.current()
-  }, [listen, memoQueryString])
+  }, [listen])
 
   // this MUST be after the previous effect to avoid duplicate initial validations.
+  // only happens on updates, not initial mounting
   const revalidateRef = useRef(swr.revalidate)
   useEffect(() => {
     revalidateRef.current = swr.revalidate

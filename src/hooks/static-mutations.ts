@@ -8,17 +8,20 @@ const set = <Doc extends Document = Document>(
   data: Partial<Omit<Doc, 'id' | 'hasPendingWrites' | 'exists'>>,
   options?: SetOptions
 ) => {
-  if (!path) return null
+  if (path === null) return null
 
-  mutate(path, (prevState = empty.object) => {
-    // default we set merge to be true. but if it's false, then we don't merge old data
-    if (options?.merge === false) return data
-    return {
-      ...prevState,
-      ...data,
-    }
-  })
-  if (!path) return null
+  mutate(
+    path,
+    (prevState = empty.object) => {
+      // default we set merge to be true. but if it's false, then we don't merge old data
+      if (options?.merge === false) return data
+      return {
+        ...prevState,
+        ...data,
+      }
+    },
+    false
+  )
   return fuego.db.doc(path).set(data, options)
 }
 
@@ -26,13 +29,17 @@ const update = <Doc extends Document = Document>(
   path: string | null,
   data: Partial<Omit<Doc, 'id' | 'hasPendingWrites' | 'exists'>>
 ) => {
-  if (!path) return null
-  mutate(path, (prevState = empty.object) => {
-    return {
-      ...prevState,
-      ...data,
-    }
-  })
+  if (path === null) return null
+  mutate(
+    path,
+    (prevState = empty.object) => {
+      return {
+        ...prevState,
+        ...data,
+      }
+    },
+    false
+  )
   return fuego.db.doc(path).update(data)
 }
 
