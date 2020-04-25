@@ -144,6 +144,8 @@ export const useDocument = <Doc extends Document = Document>(
     swrOptions
   )
 
+  const { data, isValidating, revalidate, mutate: connectedMutate, error } = swr
+
   // if listen changes,
   // we run revalidate.
   // This triggers SWR to fetch again
@@ -184,7 +186,8 @@ export const useDocument = <Doc extends Document = Document>(
       if (!listen) {
         // we only update the local cache if we don't have a listener set up
         // Why? firestore handles this for us for listeners.
-        mutate(path, (prevState = empty.object) => {
+        // @ts-ignore
+        connectedMutate((prevState = empty.object) => {
           // default we set merge to be true. but if it's false, then we don't merge old data
           if (options?.merge === false) return data
           return {
@@ -196,14 +199,15 @@ export const useDocument = <Doc extends Document = Document>(
       if (!path) return null
       return fuego.db.doc(path).set(data, options)
     },
-    [path, listen]
+    [path, listen, connectedMutate]
   )
 
   const update = useCallback(
     (data: Partial<Omit<Doc, 'id' | 'hasPendingWrites' | 'exists'>>) => {
       if (!listen) {
         // we only update the local cache if we don't have a listener set up
-        mutate(path, (prevState = empty.object) => {
+        // @ts-ignore
+        connectedMutate((prevState = empty.object) => {
           return {
             ...prevState,
             ...data,
@@ -213,16 +217,14 @@ export const useDocument = <Doc extends Document = Document>(
       if (!path) return null
       return fuego.db.doc(path).update(data)
     },
-    [listen, path]
+    [listen, path, connectedMutate]
   )
-
-  const { data, isValidating, revalidate, mutate: connectedMutate, error } = swr
 
   return {
     data,
     isValidating,
     revalidate,
-    mutate: connectedMutate,
+    mutate,
     error,
     set,
     update,

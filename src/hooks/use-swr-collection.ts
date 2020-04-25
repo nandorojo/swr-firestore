@@ -1,6 +1,6 @@
 import useSWR, { mutate as mutateStatic, ConfigInterface } from 'swr'
 import { fuego } from '../context'
-import { useRef, useEffect, useMemo } from 'react'
+import { useRef, useEffect, useMemo, useCallback } from 'react'
 // import { useMemoOne as useMemo } from 'use-memo-one'
 import { empty } from '../helpers/empty'
 
@@ -287,5 +287,21 @@ export const useCollection = <Doc extends Document = Document>(
 
   const { data, isValidating, revalidate, mutate, error } = swr
 
-  return { data, isValidating, revalidate, mutate, error }
+  const add = useCallback(
+    (data: Doc | Doc[]) => {
+      if (!listen) {
+        // we only update the local cache if we don't have a listener set up
+        mutate(prevState => {
+          const state = prevState ?? empty.array
+          const addedState = Array.isArray(data) ? data : [data]
+          return [...state, ...addedState]
+        })
+      }
+      if (!path) return null
+      return fuego.db.collection(path).add(data)
+    },
+    [listen, mutate, path]
+  )
+
+  return { data, isValidating, revalidate, mutate, error, add }
 }
