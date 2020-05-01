@@ -289,7 +289,7 @@ _(optional)_ Dictionary that accepts any of the following optional values:
 
 Can be an array, or an array of arrays.
 
-Each array follows this outline: ['key', '<comparison-operator>', 'value']. This is pulled directly from Firestore's [where pattern](https://firebase.google.com/docs/firestore/query-data/queries#query_operators).
+Each array follows this outline: `['key', 'comparison-operator', 'value']`. This is pulled directly from Firestore's [where pattern](https://firebase.google.com/docs/firestore/query-data/queries#query_operators).
 
 ```js
 // get all users whoses name are Fernando
@@ -304,6 +304,11 @@ useCollection('users', {
     ['isHungry', '==', true],
   ],
 })
+
+// get all users whose friends array contains Fernando
+useCollection('users', {
+  where: ['friends', 'array-contains', 'Fernando'],
+})
 ```
 
 ##### `orderBy`
@@ -316,6 +321,11 @@ Each array follows this outline: `['key', 'desc' | 'asc']`. This is pulled direc
 // get users, ordered by name
 useCollection('users', {
   orderBy: 'name',
+})
+
+// get users, ordered by name in descending order
+useCollection('users', {
+  orderBy: ['name', 'desc'],
 })
 
 // get users, ordered by name in descending order & hunger in ascending order
