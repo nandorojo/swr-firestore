@@ -405,7 +405,7 @@ A great feature of this library is shared data between documents and collections
 
 So, what does this mean exactly?
 
-Simply put, any query from a document or collection will all documents mathing that query.
+Simply put, any documents pulled from a Firestore request will update the global cache.
 
 **To make it clear, let's look at an example.**
 
