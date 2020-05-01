@@ -103,7 +103,7 @@ Query a users collection:
 const { data } = useCollection('users')
 ```
 
-Subscribe for real-time updates.
+Subscribe for real-time updates:
 
 ```typescript
 const { data } = useDocument(`users/${user.id}`, { listen: true })
@@ -136,10 +136,14 @@ Pass options from SWR to your collection query:
 ```typescript
 // pass SWR options
 const { data } = useCollection(
-  'albums/nothing-was-the-same',
+  'albums',
   {
     listen: true,
-    limit: 5,
+    // you can pass multiple where conditions if you want
+    where: [
+      ['artist', '==', 'Drake'],
+      ['year', '==', '2020'],
+    ],
   },
   {
     shouldRetryOnError: false,
@@ -152,13 +156,37 @@ const { data } = useCollection(
 Add data to your collection:
 
 ```typescript
-const { data, add } = useCollection('albums')
+const { data, add } = useCollection('albums', {
+  where: ['artist', '==', 'Drake'],
+})
 
 const onPress = () => {
-  // calling this will automatically update your global cache
+  // calling this will automatically update your global cache & Firestore
   add({
-    title: 'Nothing Was The Same',
+    title: 'Dark Lane Demo Tapes',
     artist: 'Drake',
+    year: '2020',
+  })
+}
+```
+
+Set document data:
+
+```typescript
+const { data, set, update } = useDocument('albums/dark-lane-demo-tapes')
+
+const onReleaseAlbum = () => {
+  // calling this will automatically update your global cache & Firestore
+  set(
+    {
+      released: true,
+    },
+    { merge: true }
+  )
+
+  // or you could call this:
+  update({
+    released: true,
   })
 }
 ```
