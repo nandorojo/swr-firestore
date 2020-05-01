@@ -83,7 +83,7 @@ _Assuming you've already completed the setup..._
 
 ```js
 import React from 'react'
-import { useDocument } from '@nandorojo/fuego'
+import { useDocument } from '@nandorojo/swr-firestore'
 
 export default function User() {
   const user = { id: 'Fernando' }
@@ -197,7 +197,7 @@ You'll rely on `useDocument` to query documents.
 
 ```js
 import React from 'react'
-import { useDocument } from '@nandorojo/fuego'
+import { useDocument } from '@nandorojo/swr-firestore'
 
 const user = { id: 'Fernando' }
 export default () => {
