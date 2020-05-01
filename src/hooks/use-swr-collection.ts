@@ -1,10 +1,10 @@
-import useSWR, { mutate, ConfigInterface } from 'swr'
+import useSWR, { mutate as mutateStatic, ConfigInterface } from 'swr'
 import { fuego } from '../context'
-import { useRef, useEffect, useMemo } from 'react'
+import { useRef, useEffect, useMemo, useCallback } from 'react'
 // import { useMemoOne as useMemo } from 'use-memo-one'
 import { empty } from '../helpers/empty'
 
-type Document = { id: string }
+type Document<T = {}> = T & { id: string }
 
 import {
   FieldPath,
@@ -58,11 +58,6 @@ type Ref = {
   // endBefore?: number | DocumentSnapshot
 }
 
-type Path = string
-type Listen = boolean
-
-type SwrKey = [Path, Listen, string]
-
 const createRef = (
   path: string,
   { where, orderBy, limit, startAt, endAt, startAfter, endBefore }: Ref
@@ -93,7 +88,7 @@ const createRef = (
           ref = ref.orderBy(...order)
         })
       } else {
-        const [order, direction] = orderBy as OrderByArray
+        const [order, direction] = orderBy
         ref = ref.orderBy(order, direction)
       }
     }
@@ -138,46 +133,31 @@ const createListenerAsync = async <Doc extends Document = Document>(
           exists: doc.exists,
           hasPendingWrites: doc.metadata.hasPendingWrites,
         } as any
+        if (
+          __DEV__ &&
+          // @ts-ignore
+          (docData.exists || docData.id || docData.hasPendingWrites)
+        ) {
+          console.warn(
+            '[use-document] warning: Your document, ',
+            doc.id,
+            ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
+          )
+        }
+        // update individual docs in the cache
+        mutateStatic(`${path}/${doc.id}`, docToAdd, false)
         data.push(docToAdd)
       })
+      // resolve initial data
       resolve({
         initialData: data,
         unsubscribe,
       })
-      mutate([path, true, queryString], data, false)
+      // update on listener fire
+      mutateStatic([path, queryString], data, false)
     })
   })
 }
-
-// const createListener = <Doc extends Document = Document>(
-//   path: string,
-//   queryString: string
-// ) => {
-//   const query: Ref = JSON.parse(queryString) ?? {}
-//   let data: Doc[] | null = null
-//   const ref = createRef(path, query)
-
-//   const unsubscribe = ref.onSnapshot(querySnapshot => {
-//     const array: typeof data = []
-//     querySnapshot.forEach(doc => {
-//       const docData = doc.data() ?? empty.object
-//       const docToAdd = {
-//         ...docData,
-//         id: doc.id,
-//         exists: doc.exists,
-//         hasPendingWrites: doc.metadata.hasPendingWrites,
-//       } as any
-//       array.push(docToAdd)
-//     })
-//     data = array
-//     mutate([path, true, queryString], data, false)
-//   })
-
-//   return {
-//     latestData: () => data,
-//     unsubscribe,
-//   }
-// }
 
 type Options<Doc extends Document = Document> = {
   listen?: boolean
@@ -187,10 +167,12 @@ type Options<Doc extends Document = Document> = {
  * @template Doc
  * @param path String if the document is ready. If it's not ready yet, pass `null`, and the request won't start yet.
  * @param [query] - Dictionary with options to query the collection.
- * @param [options] - Dictionary with option `listen`. If true, it will open a socket listener.
- * @returns
+ * @param [options] - Dictionary with option `listen`. If true, it will open a socket listener. Also takes any of SWR's options.
  */
-export const useCollection = <Doc extends Document = Document>(
+export const useCollection = <
+  Data extends object = {},
+  Doc extends Document = Document<Data>
+>(
   path: string | null,
   query: Ref = empty.object,
   options: Options<Doc> = empty.object
@@ -200,6 +182,8 @@ export const useCollection = <Doc extends Document = Document>(
 
   const { where, endAt, endBefore, startAfter, startAt, orderBy, limit } = query
 
+  // why not just put this into the ref directly?
+  // so that we can use the useEffect down below that triggers revalidate()
   const memoQueryString = useMemo(
     () =>
       JSON.stringify({
@@ -214,11 +198,20 @@ export const useCollection = <Doc extends Document = Document>(
     [endAt, endBefore, limit, orderBy, startAfter, startAt, where]
   )
 
+  // we move listen to a Ref
+  // why? because we shouldn't have to include "listen" in the key
+  // if we do, then calling mutate() won't be consistent for all
+  // collections with the same path & query
+  const shouldListen = useRef(listen)
+  useEffect(() => {
+    shouldListen.current = listen
+  })
+
   const swr = useSWR<Doc[] | null>(
     // if the path is null, this means we don't want to fetch yet.
-    path === null ? null : [path, listen, memoQueryString],
-    async (...[path, listen, queryString]: SwrKey) => {
-      if (listen) {
+    [path, memoQueryString],
+    async (path: string, queryString: string) => {
+      if (shouldListen.current) {
         if (unsubscribeRef.current) {
           unsubscribeRef.current()
         }
@@ -242,6 +235,19 @@ export const useCollection = <Doc extends Document = Document>(
             exists: doc.exists,
             hasPendingWrites: doc.metadata.hasPendingWrites,
           } as any
+          // update individual docs in the cache
+          mutateStatic(`${path}/${doc.id}`, docToAdd, false)
+          if (
+            __DEV__ &&
+            // @ts-ignore
+            (docData.exists || docData.id || docData.hasPendingWrites)
+          ) {
+            console.warn(
+              '[use-document] warning: Your document, ',
+              doc.id,
+              ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
+            )
+          }
           array.push(docToAdd)
         })
         return array
@@ -250,6 +256,26 @@ export const useCollection = <Doc extends Document = Document>(
     },
     swrOptions
   )
+
+  // if listen or changes,
+  // we run revalidate.
+  // This triggers SWR to fetch again
+  // Why? because we don't want to put listen
+  // in the useSWR key. If we did, then we couldn't mutate
+  // based on query alone. If we had useSWR(['users', true]),
+  // but then a `users` fetch with `listen` set to `false` updated, it wouldn't mutate both.
+  // thus, we move the `listen` and option to a ref user in `useSWR`,
+  // and we call `revalidate` if it changes.
+  useEffect(() => {
+    if (revalidateRef.current) revalidateRef.current()
+  }, [listen])
+
+  // this MUST be after the previous effect to avoid duplicate initial validations.
+  // only happens on updates, not initial mounting
+  const revalidateRef = useRef(swr.revalidate)
+  useEffect(() => {
+    revalidateRef.current = swr.revalidate
+  })
 
   useEffect(() => {
     return () => {
@@ -264,5 +290,21 @@ export const useCollection = <Doc extends Document = Document>(
 
   const { data, isValidating, revalidate, mutate, error } = swr
 
-  return { data, isValidating, revalidate, mutate, error }
+  const add = useCallback(
+    (data: Doc | Doc[]) => {
+      if (!listen) {
+        // we only update the local cache if we don't have a listener set up
+        mutate(prevState => {
+          const state = prevState ?? empty.array
+          const addedState = Array.isArray(data) ? data : [data]
+          return [...state, ...addedState]
+        })
+      }
+      if (!path) return null
+      return fuego.db.collection(path).add(data)
+    },
+    [listen, mutate, path]
+  )
+
+  return { data, isValidating, revalidate, mutate, error, add }
 }
