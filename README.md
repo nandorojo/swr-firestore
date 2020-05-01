@@ -257,7 +257,7 @@ Create a model for your `typescript` types, and pass it as a generic to `useDocu
 
 ### useDocument
 
-The `data` item be include your TypeScript model (or `null`), and will also include an `id` string, an `exists` boolean, and `hasPendingWrites` boolean.
+The `data` item will include your TypeScript model (or `null`), and will also include an `id` string, an `exists` boolean, and `hasPendingWrites` boolean.
 
 ```typescript
 type User = {
@@ -283,7 +283,7 @@ const hasPendingWrites = data?.hasPendingWrites // boolean | undefind
 
 ### useCollection
 
-The `data` item will be your TypeScript model (or `null`), and will also include an `id` string.
+The `data` item will include your TypeScript model (or `null`), and will also include an `id` string.
 
 ```typescript
 type User = {

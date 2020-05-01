@@ -29,9 +29,9 @@
   "author": "Fernando Rojo <frojo@sas.upenn.edu> (https://github.com/nandorojo)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/nandorojo/nandorojo-fu/issues"
+    "url": "https://github.com/nandorojo/swr-firestore/issues"
   },
-  "homepage": "https://github.com/nandorojo/nandorojo-fu#readme",
+  "homepage": "https://github.com/nandorojo/swr-firestore#readme",
   "devDependencies": {
     "@commitlint/config-conventional": "^8.3.4",
     "@firebase/firestore-types": "^1.10.1",
