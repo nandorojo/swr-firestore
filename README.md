@@ -1,7 +1,7 @@
 # SWR + Firestore
 
 ```js
-const { data, update } = useDocument('users/fernando')
+const { data } = useDocument('users/fernando')
 ```
 
 **It's that easy.**

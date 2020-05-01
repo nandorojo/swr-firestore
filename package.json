@@ -1,6 +1,6 @@
 {
   "name": "@nandorojo/swr-firestore",
-  "version": "0.4.4",
+  "version": "0.4.6",
   "description": "SWR React hooks for Firestore, that you can actually use in production, on every screen.",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",
@@ -47,7 +47,6 @@
     "eslint-config-prettier": "^6.10.0",
     "eslint-plugin-prettier": "^3.1.2",
     "firebase": "^7.14.1",
-    "husky": "^4.0.1",
     "jest": "^25.1.0",
     "prettier": "^1.19.1",
     "react": "~16.9.0",
@@ -103,7 +102,6 @@
     ]
   },
   "dependencies": {
-    "swr": "^0.2.0",
-    "use-memo-one": "^1.1.1"
+    "swr": "^0.2.0"
   }
 }
