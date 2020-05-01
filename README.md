@@ -1,8 +1,6 @@
 # SWR + Firestore
 
 ```js
-import { useDocument } from '@nandorojo/swr-firestore'
-
 const { data, update } = useDocument('users/fernando')
 ```
 
@@ -18,14 +16,13 @@ You can now fetch, add, and mutate Firestore data with zero boilerplate.
 
 ## Features
 
-- Shared global state and local cache between collection and document queries [(instead of Redux??)](#shared-global-state-between-documents-and-collections)
+- Shared global state / cache between collection and document queries [(instead of Redux??)](#shared-global-state-between-documents-and-collections)
 - Works with both **React** and **React Native**.
 - Blazing fast
 - `set`, `update`, and `add` update your global cache, instantly
 - TypeScript-ready [(see docs)](#typescript-support)
-- Realtime subscriptions to documents and collections [(example)](#simple-examples)
+- Realtime subscriptions [(example)](#simple-examples)
 - Globally-shared state across components
-- Combine local cache with Firestore real-time data
 - Prevent memory leaks from Firestore subscriptions
 
 ...along with the features touted by Vercel's incredible [SWR](https://github.com/zeit/swr#introduction):
