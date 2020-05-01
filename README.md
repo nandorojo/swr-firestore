@@ -403,7 +403,7 @@ type User = {
 const { data } = useCollection<User>('users')
 
 if (data) {
-  data.forEach({ id, name } => {
+  data.forEach(({ id, name }) => {
     // ...
   })
 }
