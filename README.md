@@ -22,10 +22,10 @@ You can now fetch, add, and mutate Firestore data with zero boilerplate.
 - `set`, `update`, and `add` update your global cache, instantly
 - TypeScript-ready [(see docs)](#typescript-support)
 - Realtime subscriptions [(example)](#simple-examples)
-- Globally-shared state across components
 - Prevent memory leaks from Firestore subscriptions
+- No more parsing `document.data()` from Firestore requests
 
-...along with the features touted by Vercel's incredible [SWR](https://github.com/zeit/swr#introduction):
+...along with the features touted by Vercel's incredible [SWR](https://github.com/zeit/swr#introduction) library:
 
 _"With SWR, components will get a stream of data updates constantly and automatically. Thus, the **UI will be always fast and reactive**."_
 
@@ -205,7 +205,7 @@ export default () => {
 }
 ```
 
-If you want to set up a listener (or, in Firestore-speak, `onSnapShot`) just set `listen` to `true`.
+If you want to set up a listener (or, in Firestore-speak, `onSnapshot`) just set `listen` to `true`.
 
 ```js
 const { data, error } = useDocument(`users/${user.id}`, { listen: true })
