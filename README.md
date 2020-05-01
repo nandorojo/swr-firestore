@@ -249,6 +249,106 @@ The dictionary also includes the following [from `useSWR`](https://github.com/ze
 - `isValidating`: if there's a request or revalidation loading
 - `mutate(data?, shouldRevalidate?)`: function to mutate the cached data
 
+## `useCollection(path, query, options)`
+
+```js
+const { data, add, error, isValidating, mutate } = useCollection(
+  path,
+  query,
+  options
+)
+```
+
+### Arguments
+
+- **`path`** required string, path to collection.
+- `query` optional dictionary with Firestore query details
+- `options` SWR options [(see SWR docs)](https://github.com/zeit/swr#options)
+
+#### `path`
+
+**`path` required** The unique document path for your Firestore document.
+
+- `string` | `null`. If `null`, the request will not be sent. This is useful if you want to get a user document, but the user ID hasn't loaded yet, for instance.
+- This follows the same pattern as the `key` argument in `useSWR`. See the [SWR docs](https://github.com/zeit/swr#conditional-fetching) for more. Functions are not currently supported for this argument.
+
+#### `query`
+
+_(optional)_ Dictionary that accepts any of the following optional values:
+
+- `listen = false`: if true, will set up a real-time listener that automatically updates.
+- `limit`: number that limits the number of documents
+- [`where`](#where): filter documents by certain conditions based on their fields
+- [`orderBy`](#orderBy): sort documents by their fields
+- `startAt`: number to start at
+- `endAt`: number to end at
+- `startAfter`: number to start after
+- `endBefore`: number to end before
+
+##### `where`
+
+Can be an array, or an array of arrays.
+
+Each array follows this outline: ['key', '<comparison-operator>', 'value']. This is pulled directly from Firestore's [where pattern](https://firebase.google.com/docs/firestore/query-data/queries#query_operators).
+
+```js
+// get all users whoses name are Fernando
+useCollection('users', {
+  where: ['name', '==', 'Fernando'],
+})
+
+// get all users whose names are Fernando & who are hungry
+useCollection('users', {
+  where: [
+    ['name', '==', 'Fernando'],
+    ['isHungry', '==', true],
+  ],
+})
+```
+
+##### `orderBy`
+
+Can be a string, array, or an array of arrays.
+
+Each array follows this outline: `['key', 'desc' | 'asc']`. This is pulled directly from Firestore's [orderBy pattern](https://firebase.google.com/docs/firestore/query-data/order-limit-data).
+
+```js
+// get users, ordered by name
+useCollection('users', {
+  orderBy: 'name',
+})
+
+// get users, ordered by name in descending order & hunger in ascending order
+useCollection('users', {
+  orderBy: [
+    ['name', 'desc'], //
+    ['isHungry', 'asc'],
+  ],
+})
+```
+
+#### `options`
+
+_(optional)_ A dictionary with added options for the request. See the [options available from SWR](https://github.com/zeit/swr#options).
+
+### Return values
+
+Returns a dictionary with the following values:
+
+- `set(data, SetOptions?)`: Extends the `firestore` document `set` function.
+  - You can call this when you want to edit your document.
+  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular Firestore `set` function.
+  - The second argument is the same as the second argument for [Firestore `set`](https://firebase.google.com/docs/firestore/manage-data/add-data#set_a_document).
+- `update(data)`: Extends the Firestore document [`update` function](https://firebase.google.com/docs/firestore/manage-data/add-data#update-data).
+  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `set` function.
+
+The dictionary also includes the following [from `useSWR`](https://github.com/zeit/swr#return-values):
+
+- `data`: data for the given key resolved by fetcher (or undefined if not loaded)
+- `error`: error thrown by fetcher (or undefined)
+- `isValidating`: if there's a request or revalidation loading
+- `mutate(data?, shouldRevalidate?)`: function to mutate the cached data
+
 # Features
 
 ## TypeScript Support
