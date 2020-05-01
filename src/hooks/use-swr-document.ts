@@ -67,7 +67,10 @@ const createListenerAsync = async <Doc extends Document = Document>(
   })
 }
 
-export const useDocument = <Doc extends Document = Document>(
+export const useDocument = <
+  Data extends object = {},
+  Doc extends Document = Document<Data>
+>(
   path: string | null,
   options: Options<Doc> = empty.object
 ) => {
@@ -203,7 +206,7 @@ export const useDocument = <Doc extends Document = Document>(
   )
 
   const update = useCallback(
-    (data: Partial<Omit<Doc, 'id' | 'hasPendingWrites' | 'exists'>>) => {
+    (data: Partial<Data>) => {
       if (!listen) {
         // we only update the local cache if we don't have a listener set up
         // @ts-ignore

@@ -4,7 +4,7 @@ import { useRef, useEffect, useMemo, useCallback } from 'react'
 // import { useMemoOne as useMemo } from 'use-memo-one'
 import { empty } from '../helpers/empty'
 
-type Document = { id: string }
+type Document<T = {}> = T & { id: string }
 
 import {
   FieldPath,
@@ -169,7 +169,10 @@ type Options<Doc extends Document = Document> = {
  * @param [query] - Dictionary with options to query the collection.
  * @param [options] - Dictionary with option `listen`. If true, it will open a socket listener. Also takes any of SWR's options.
  */
-export const useCollection = <Doc extends Document = Document>(
+export const useCollection = <
+  Data extends object = {},
+  Doc extends Document = Document<Data>
+>(
   path: string | null,
   query: Ref = empty.object,
   options: Options<Doc> = empty.object
