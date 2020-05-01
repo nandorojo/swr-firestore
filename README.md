@@ -446,6 +446,8 @@ Whoa, `isHungry` is now true. But what happens to the original document query? W
 
 `swr-firestore` uses document `id` fields to sync any collection queries with existing document queries across your app.
 
+That means that **if you somehow fetch the same document twice, the latest version will update everywhere.**
+
 ## License
 
 MIT
