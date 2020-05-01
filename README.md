@@ -1,313 +1,351 @@
-import useSWR, { mutate as mutateStatic, ConfigInterface } from 'swr'
-import { fuego } from '../context'
-import { useRef, useEffect, useMemo, useCallback } from 'react'
-// import { useMemoOne as useMemo } from 'use-memo-one'
-import { empty } from '../helpers/empty'
+# SWR + Firestore
 
-type Document<T = {}> = T & { id: string }
+```js
+const { data, update } = useDocument('users/fernando')
+```
 
-import {
-FieldPath,
-OrderByDirection,
-WhereFilterOp,
-Query,
-} from '@firebase/firestore-types'
+**It's that easy.**
 
-type OrderByArray = [string | FieldPath, OrderByDirection]
-type OrderByItem = OrderByArray | string
-type OrderByType = OrderByItem | OrderByArray[]
+🔥 This library provides the hooks you need for querying Firestore, that you can actually use in production, on every screen.
 
-type WhereItem = [string | FieldPath, WhereFilterOp, unknown]
-type WhereArray = WhereItem[]
-type WhereType = WhereItem | WhereArray
+⚡️ It aims to be **the fastest way to use Firestore in a React app,** both from a developer experience and app performance perspective.
 
-type Ref = {
-limit?: number
-orderBy?: OrderByType
-where?: WhereType
+🍕 This library is built on top [useSWR](https://swr.now.sh), meaning you get all of its awesome benefits out-of-the-box.
 
-/\*\*
+You can now fetch, add, and mutate Firestore data with zero boilerplate.
 
-- For now, this can only be a number, since it has to be JSON serializable.
--
-- **TODO** allow DocumentSnapshot here too. This will probably be used with a useStaticCollection hook in the future.
-  \*/
-  startAt?: number
-  /\*\*
-- For now, this can only be a number, since it has to be JSON serializable.
--
-- **TODO** allow DocumentSnapshot here too. This will probably be used with a useStaticCollection hook in the future.
-  \*/
-  endAt?: number
-  /\*\*
-- For now, this can only be a number, since it has to be JSON serializable.
--
-- **TODO** allow DocumentSnapshot here too. This will probably be used with a useStaticCollection hook in the future.
-  \*/
-  startAfter?: number
-  /\*\*
-- For now, this can only be a number, since it has to be JSON serializable.
--
-- **TODO** allow DocumentSnapshot here too. This will probably be used with a useStaticCollection hook in the future.
-  \*/
-  endBefore?: number
+## Features
 
-// THESE ARE NOT JSON SERIALIZABLE
-// startAt?: number | DocumentSnapshot
-// endAt?: number | DocumentSnapshot
-// startAfter?: number | DocumentSnapshot
-// endBefore?: number | DocumentSnapshot
+- Shared global state / cache between collection and document queries [(instead of Redux??)](#shared-global-state-between-documents-and-collections)
+- Works with both **React** and **React Native**.
+- Blazing fast
+- `set`, `update`, and `add` update your global cache, instantly
+- TypeScript-ready [(see docs)](#typescript-support)
+- Realtime subscriptions [(example)](#simple-examples)
+- Globally-shared state across components
+- Prevent memory leaks from Firestore subscriptions
+
+...along with the features touted by Vercel's incredible [SWR](https://github.com/zeit/swr#introduction):
+
+_"With SWR, components will get a stream of data updates constantly and automatically. Thus, the **UI will be always fast and reactive**."_
+
+- Transport and protocol agnostic data fetching
+- Fast page navigation
+- Revalidation on focus
+- Interval polling
+- Request deduplication
+- Local mutation
+- Pagination
+- TypeScript ready
+- SSR support
+- Suspense mode
+- Minimal API
+
+## Installation
+
+```sh
+yarn add @nandorojo/swr-firestore
+
+# or
+npm install @nandorojo/swr-firestore
+```
+
+## Set up
+
+In the root of your app, **create an instance of Fuego** and pass it to the **FuegoProvider**.
+
+If you're using `next.js`, this goes in your `pages/_app.js` file.
+
+`App.js`
+
+```jsx
+import React from 'react'
+import { Fuego, FuegoProvider } from '@nandorojo/swr-firestore'
+
+const firebaseConfig = {
+  // put yours here
 }
 
-const createRef = (
-path: string,
-{ where, orderBy, limit, startAt, endAt, startAfter, endBefore }: Ref
-) => {
-let ref: Query = fuego.db.collection(path)
+const fuego = new Fuego(firebaseConfig)
 
-if (where) {
-function multipleConditions(w: WhereType): w is WhereArray {
-return !!(w as WhereArray) && Array.isArray(w[0])
+export default function App() {
+  return (
+    <FuegoProvider fuego={fuego}>{/* Your app code here! */}</FuegoProvider>
+  )
 }
-if (multipleConditions(where)) {
-where.forEach(w => {
-ref = ref.where(w[0], w[1], w[2])
+```
+
+Make sure to create your `Fuego` instance outside of the component. The only argument `Fuego` takes is your firebase `config` variable.
+
+## Basic Usage
+
+_Assuming you've already completed the setup..._
+
+```js
+import React from 'react'
+import { useDocument } from '@nandorojo/fuego'
+
+export default function User() {
+  const user = { id: 'Fernando' }
+  const { data, update, error } = useDocument(`users/${user.id}`)
+
+  // ...render here
+}
+```
+
+`useDocument` accepts a document `path` as its first argument here. `useCollection` works similarly.
+
+## Simple examples
+
+Query a users collection:
+
+```typescript
+const { data } = useCollection('users')
+```
+
+Subscribe for real-time updates:
+
+```typescript
+const { data } = useDocument(`users/${user.id}`, { listen: true })
+```
+
+Make a complex collection query:
+
+```typescript
+const { data } = useCollection('users', {
+  where: ['name', '==', 'fernando'],
+  limit: 10,
+  orderBy: ['age', 'desc'],
+  listen: true,
 })
-} else if (typeof where[0] === 'string' && typeof where[1] === 'string') {
-ref = ref.where(where[0], where[1], where[2])
-}
-}
-if (orderBy) {
-if (typeof orderBy === 'string') {
-ref = ref.orderBy(orderBy)
-} else if (Array.isArray(orderBy)) {
-function multipleOrderBy(o: OrderByType): o is OrderByArray[] {
-return Array.isArray((o as OrderByArray[])[0])
-}
-if (multipleOrderBy(orderBy)) {
-orderBy.forEach(order => {
-ref = ref.orderBy(...order)
+```
+
+Pass options from SWR to your document query:
+
+```typescript
+// pass SWR options
+const { data } = useDocument('albums/nothing-was-the-same', {
+  shouldRetryOnError: false,
+  onSuccess: console.log,
+  loadingTimeout: 2000,
 })
-} else {
-const [order, direction] = orderBy
-ref = ref.orderBy(order, direction)
-}
-}
-}
-if (startAt) {
-ref = ref.startAt(startAt)
-}
-if (endAt) {
-ref = ref.endAt(endAt)
-}
-if (startAfter) {
-ref = ref.startAfter(startAfter)
-}
-if (endBefore) {
-ref = ref.endBefore(endBefore)
-}
-if (limit) {
-ref = ref.limit(limit)
-}
-return ref
-}
+```
 
-type ListenerReturnType<Doc extends Document = Document> = {
-initialData: Doc[] | null
-unsubscribe: ReturnType<ReturnType<typeof fuego['db']['doc']>['onSnapshot']>
-}
+Pass options from SWR to your collection query:
 
-const createListenerAsync = async <Doc extends Document = Document>(
-path: string,
-queryString: string
-): Promise<ListenerReturnType<Doc>> => {
-return new Promise(resolve => {
-const query: Ref = JSON.parse(queryString) ?? {}
-const ref = createRef(path, query)
-const unsubscribe = ref.onSnapshot(querySnapshot => {
-const data: Doc[] = []
-querySnapshot.forEach(doc => {
-const docData = doc.data() ?? empty.object
-const docToAdd = {
-...docData,
-id: doc.id,
-exists: doc.exists,
-hasPendingWrites: doc.metadata.hasPendingWrites,
-} as any
-if (
-**DEV** &&
-// @ts-ignore
-(docData.exists || docData.id || docData.hasPendingWrites)
-) {
-console.warn(
-'[use-document] warning: Your document, ',
-doc.id,
-' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
+```typescript
+// pass SWR options
+const { data } = useCollection(
+  'albums',
+  {
+    listen: true,
+    // you can pass multiple where conditions if you want
+    where: [
+      ['artist', '==', 'Drake'],
+      ['year', '==', '2020'],
+    ],
+  },
+  {
+    shouldRetryOnError: false,
+    onSuccess: console.log,
+    loadingTimeout: 2000,
+  }
 )
+```
+
+Add data to your collection:
+
+```typescript
+const { data, add } = useCollection('albums', {
+  where: ['artist', '==', 'Drake'],
+})
+
+const onPress = () => {
+  // calling this will automatically update your global cache & Firestore
+  add({
+    title: 'Dark Lane Demo Tapes',
+    artist: 'Drake',
+    year: '2020',
+  })
 }
-// update individual docs in the cache
-mutateStatic(`${path}/${doc.id}`, docToAdd, false)
-data.push(docToAdd)
-})
-// resolve initial data
-resolve({
-initialData: data,
-unsubscribe,
-})
-// update on listener fire
-mutateStatic([path, queryString], data, false)
-})
-})
-}
+```
 
-type Options<Doc extends Document = Document> = {
-listen?: boolean
-} & ConfigInterface<Doc[] | null>
-/\*\*
+Set document data:
 
-- Call a Firestore Collection
-- @template Doc
-- @param path String if the document is ready. If it's not ready yet, pass `null`, and the request won't start yet.
-- @param [query] - Dictionary with options to query the collection.
-- @param [options] - Dictionary with option `listen`. If true, it will open a socket listener. Also takes any of SWR's options.
-  \*/
-  export const useCollection = <
-  Data extends object = {},
-  Doc extends Document = Document<Data>
-  > (
-  > path: string | null,
-  > query: Ref = empty.object,
-  > options: Options<Doc> = empty.object
-  > ) => {
-  > const unsubscribeRef = useRef<ListenerReturnType['unsubscribe'] | null>(null)
-  > const { listen = false, ...swrOptions } = options
+```typescript
+const { data, set, update } = useDocument('albums/dark-lane-demo-tapes')
 
-const { where, endAt, endBefore, startAfter, startAt, orderBy, limit } = query
-
-// why not just put this into the ref directly?
-// so that we can use the useEffect down below that triggers revalidate()
-const memoQueryString = useMemo(
-() =>
-JSON.stringify({
-where,
-endAt,
-endBefore,
-startAfter,
-startAt,
-orderBy,
-limit,
-}),
-[endAt, endBefore, limit, orderBy, startAfter, startAt, where]
-)
-
-// we move listen to a Ref
-// why? because we shouldn't have to include "listen" in the key
-// if we do, then calling mutate() won't be consistent for all
-// collections with the same path & query
-const shouldListen = useRef(listen)
-useEffect(() => {
-shouldListen.current = listen
-})
-
-const swr = useSWR<Doc[] | null>(
-// if the path is null, this means we don't want to fetch yet.
-[path, memoQueryString],
-async (path: string, queryString: string) => {
-if (shouldListen.current) {
-if (unsubscribeRef.current) {
-unsubscribeRef.current()
-}
-const { unsubscribe, initialData } = await createListenerAsync<Doc>(
-path,
-queryString
-)
-unsubscribeRef.current = unsubscribe
-return initialData
-}
-
-      const query: Ref = JSON.parse(queryString) ?? {}
-      const ref = createRef(path, query)
-      const data: Doc[] = await ref.get().then(querySnapshot => {
-        const array: typeof data = []
-        querySnapshot.forEach(doc => {
-          const docData = doc.data() ?? empty.object
-          const docToAdd = {
-            ...docData,
-            id: doc.id,
-            exists: doc.exists,
-            hasPendingWrites: doc.metadata.hasPendingWrites,
-          } as any
-          // update individual docs in the cache
-          mutateStatic(`${path}/${doc.id}`, docToAdd, false)
-          if (
-            __DEV__ &&
-            // @ts-ignore
-            (docData.exists || docData.id || docData.hasPendingWrites)
-          ) {
-            console.warn(
-              '[use-document] warning: Your document, ',
-              doc.id,
-              ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
-            )
-          }
-          array.push(docToAdd)
-        })
-        return array
-      })
-      return data
+const onReleaseAlbum = () => {
+  // calling this will automatically update your global cache & Firestore
+  set(
+    {
+      released: true,
     },
-    swrOptions
+    { merge: true }
+  )
 
+  // or you could call this:
+  update({
+    released: true,
+  })
+}
+```
+
+## Query Documents
+
+You'll rely on `useDocument` to query documents.
+
+```js
+import React from 'react'
+import { useDocument } from '@nandorojo/fuego'
+
+const user = { id: 'Fernando' }
+export default () => {
+  const { data, error } = useDocument(`users/${user.id}`)
+}
+```
+
+If you want to set up a listener (or, in Firestore-speak, `onSnapShot`) just set `listen` to `true`.
+
+```js
+const { data, error } = useDocument(`users/${user.id}`, { listen: true })
+```
+
+# API
+
+## `useDocument(path, options)`
+
+```js
+const { data, set, update, error, isValidating, mutate } = useDocument(
+  path,
+  options
 )
+```
 
-// if listen or changes,
-// we run revalidate.
-// This triggers SWR to fetch again
-// Why? because we don't want to put listen
-// in the useSWR key. If we did, then we couldn't mutate
-// based on query alone. If we had useSWR(['users', true]),
-// but then a `users` fetch with `listen` set to `false` updated, it wouldn't mutate both.
-// thus, we move the `listen` and option to a ref user in `useSWR`,
-// and we call `revalidate` if it changes.
-useEffect(() => {
-if (revalidateRef.current) revalidateRef.current()
-}, [listen])
+### Arguments
 
-// this MUST be after the previous effect to avoid duplicate initial validations.
-// only happens on updates, not initial mounting
-const revalidateRef = useRef(swr.revalidate)
-useEffect(() => {
-revalidateRef.current = swr.revalidate
-})
+- **`path` required** The unique document path for your Firestore document.
+  - `string` | `null`. If `null`, the request will not be sent. This is useful if you want to get a user document, but the user ID hasn't loaded yet, for instance.
+  - This follows the same pattern as the `key` argument in `useSWR`. See the [SWR docs](https://github.com/zeit/swr#conditional-fetching) for more. Functions are not currently supported for this argument.
+- `options` _(optional)_ A dictionary with added options for the query. Takes the folowing values:
+  - `listen = false`: If `true`, sets up a listener for this document that updates whenever it changes.
+  - You can also pass any of the [options available from `useSWR`](https://github.com/zeit/swr#options).
 
-useEffect(() => {
-return () => {
-// clean up listener on unmount if it exists
-if (unsubscribeRef.current) {
-unsubscribeRef.current()
-unsubscribeRef.current = null
+### Return values
+
+Returns a dictionary with the following values:
+
+- `set(data, SetOptions?)`: Extends the `firestore` document `set` function.
+  - You can call this when you want to edit your document.
+  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular Firestore `set` function.
+  - The second argument is the same as the second argument for [Firestore `set`](https://firebase.google.com/docs/firestore/manage-data/add-data#set_a_document).
+- `update(data)`: Extends the Firestore document [`update` function](https://firebase.google.com/docs/firestore/manage-data/add-data#update-data).
+  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `set` function.
+
+The dictionary also includes the following [from `useSWR`](https://github.com/zeit/swr#return-values):
+
+- `data`: data for the given key resolved by fetcher (or undefined if not loaded)
+- `error`: error thrown by fetcher (or undefined)
+- `isValidating`: if there's a request or revalidation loading
+- `mutate(data?, shouldRevalidate?)`: function to mutate the cached data
+
+# Features
+
+## TypeScript Support
+
+Create a model for your `typescript` types, and pass it as a generic to `useDocument` or `useCollection`.
+
+### useDocument
+
+The `data` item be include your TypeScript model (or `null`), and will also include an `id` string, an `exists` boolean, and `hasPendingWrites` boolean.
+
+```typescript
+type User = {
+  name: string
 }
-}
-// should depend on the path, queyr, and listen being the same...
-}, [path, listen, memoQueryString])
 
-const { data, isValidating, revalidate, mutate, error } = swr
+const { data } = useDocument<User>('users/fernando')
 
-const add = useCallback(
-(data: Doc | Doc[]) => {
-if (!listen) {
-// we only update the local cache if we don't have a listener set up
-mutate(prevState => {
-const state = prevState ?? empty.array
-const addedState = Array.isArray(data) ? data : [data]
-return [...state, ...addedState]
-})
+if (data) {
+  const {
+    id, // string
+    name, // string
+    exists, // boolean
+    hasPendingWrites, // boolean
+  } = data
 }
-if (!path) return null
-return fuego.db.collection(path).add(data)
-},
-[listen, mutate, path]
-)
 
-return { data, isValidating, revalidate, mutate, error, add }
+const id = data?.id //  string | undefined
+const name = data?.name // string | undefined
+const exists = data?.exists // boolean | undefined
+const hasPendingWrites = data?.hasPendingWrites // boolean | undefind
+```
+
+### useCollection
+
+The `data` item will be your TypeScript model (or `null`), and will also include an `id` string.
+
+```typescript
+type User = {
+  name: string
 }
+
+const { data } = useCollection<User>('users')
+
+if (data) {
+  data.forEach({ id, name } => {
+    // ...
+  })
+}
+```
+
+## Shared global state between documents and collections
+
+A great feature of this library is shared data between documents and collections. Until now, this could only be achieved with something like a verbose Redux set up.
+
+So, what does this mean exactly?
+
+Simply put, any query from a document or collection will all documents mathing that query.
+
+**To make it clear, let's look at an example.**
+
+Imagine you query a `user` document from Firestore:
+
+```js
+const { data } = useDocument('users/fernando')
+```
+
+And pretend that this document's `data` returns the following:
+
+```json
+{ "id": "fernando", "isHungry": false }
+```
+
+_Remember that `isHungry` is `false` here ^_
+
+Now, let's say you query the `users` collection anywhere else in your app:
+
+```js
+const { data } = useCollection('users')
+```
+
+And pretend that this collection's `data` returns the following:
+
+```json
+[
+  { "id": "fernando", "isHungry": true },
+  {
+    //...
+  }
+]
+```
+
+Whoa, `isHungry` is now true. But what happens to the original document query? Will we have stale data?
+
+**Answer:** It will automatically re-render with the new data!
+
+`swr-firestore` uses document `id` fields to sync any collection queries with existing document queries across your app.
+
+## License
+
+MIT
