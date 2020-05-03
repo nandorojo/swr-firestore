@@ -92,6 +92,7 @@ export const useDocument = <
       if (shouldListen.current) {
         if (unsubscribeRef.current) {
           unsubscribeRef.current()
+          unsubscribeRef.current = null
         }
         const { unsubscribe, initialData } = await createListenerAsync<Doc>(
           path
@@ -231,6 +232,7 @@ export const useDocument = <
     error,
     set,
     update,
+    loading: !data && !error,
   }
 }
 

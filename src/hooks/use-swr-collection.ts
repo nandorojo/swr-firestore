@@ -214,6 +214,7 @@ export const useCollection = <
       if (shouldListen.current) {
         if (unsubscribeRef.current) {
           unsubscribeRef.current()
+          unsubscribeRef.current = null
         }
         const { unsubscribe, initialData } = await createListenerAsync<Doc>(
           path,
@@ -306,5 +307,13 @@ export const useCollection = <
     [listen, mutate, path]
   )
 
-  return { data, isValidating, revalidate, mutate, error, add }
+  return {
+    data,
+    isValidating,
+    revalidate,
+    mutate,
+    error,
+    add,
+    loading: !data && !error,
+  }
 }
