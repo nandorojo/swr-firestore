@@ -50,6 +50,11 @@ yarn add @nandorojo/swr-firestore firebase
 npm install @nandorojo/swr-firestore firebase
 ```
 
+Install firebase:
+```sh
+expo install firebase
+```
+
 ## Set up
 
 In the root of your app, **create an instance of Fuego** and pass it to the **FuegoProvider**.
