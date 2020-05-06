@@ -95,7 +95,6 @@ export default function User() {
   if (!data) return <Text>Loading...</Text>
   
   return <Text>Name: {user.name}</Text>
-  // ...render here
 }
 ```
 
