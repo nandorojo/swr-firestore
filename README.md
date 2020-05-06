@@ -83,18 +83,38 @@ Make sure to create your `Fuego` instance outside of the component. The only arg
 
 _Assuming you've already completed the setup..._
 
+### Subscribe to a document
+
 ```js
 import React from 'react'
 import { useDocument } from '@nandorojo/swr-firestore'
+import { Text } from 'react-native'
 
 export default function User() {
   const user = { id: 'Fernando' }
-  const { data, update, error } = useDocument(`users/${user.id}`)
+  const { data, update, error } = useDocument(`users/${user.id}`, { listen: true })
 
   if (error) return <Text>Error!</Text>
   if (!data) return <Text>Loading...</Text>
   
   return <Text>Name: {user.name}</Text>
+}
+```
+
+### Get a collection
+
+```js
+import React from 'react'
+import { useCollection } from '@nandorojo/swr-firestore'
+import { Text } from 'react-native'
+
+export default function User() {
+  const { data, update, error } = useDocument(`users`)
+
+  if (error) return <Text>Error!</Text>
+  if (!data) return <Text>Loading...</Text>
+  
+  return data.map(user => <Text key={user.id}>{user.name}</Text>)
 }
 ```
 
