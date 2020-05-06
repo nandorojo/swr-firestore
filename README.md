@@ -109,7 +109,7 @@ import { useCollection } from '@nandorojo/swr-firestore'
 import { Text } from 'react-native'
 
 export default function UserList() {
-  const { data, update, error } = useDocument(`users`)
+  const { data, update, error } = useCollection(`users`)
 
   if (error) return <Text>Error!</Text>
   if (!data) return <Text>Loading...</Text>
