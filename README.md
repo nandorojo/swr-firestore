@@ -61,6 +61,8 @@ If you're using `next.js`, this goes in your `pages/_app.js` file.
 ```jsx
 import React from 'react'
 import { Fuego, FuegoProvider } from '@nandorojo/swr-firestore'
+import 'firebase/firestore'
+import 'firebase/auth'
 
 const firebaseConfig = {
   // put yours here
@@ -89,6 +91,10 @@ export default function User() {
   const user = { id: 'Fernando' }
   const { data, update, error } = useDocument(`users/${user.id}`)
 
+  if (error) return <Text>Error!</Text>
+  if (!data) return <Text>Loading...</Text>
+  
+  return <Text>Name: {user.name}</Text>
   // ...render here
 }
 ```
