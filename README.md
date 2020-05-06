@@ -44,10 +44,10 @@ _"With SWR, components will get a stream of data updates constantly and automati
 ## Installation
 
 ```sh
-yarn add @nandorojo/swr-firestore
+yarn add @nandorojo/swr-firestore firebase
 
 # or
-npm install @nandorojo/swr-firestore
+npm install @nandorojo/swr-firestore firebase
 ```
 
 ## Set up
