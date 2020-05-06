@@ -60,9 +60,9 @@ If you're using `next.js`, this goes in your `pages/_app.js` file.
 
 ```jsx
 import React from 'react'
-import { Fuego, FuegoProvider } from '@nandorojo/swr-firestore'
 import 'firebase/firestore'
 import 'firebase/auth'
+import { Fuego, FuegoProvider } from '@nandorojo/swr-firestore'
 
 const firebaseConfig = {
   // put yours here
