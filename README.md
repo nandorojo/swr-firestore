@@ -16,7 +16,7 @@ You can now fetch, add, and mutate Firestore data with zero boilerplate.
 
 ## Features
 
-- Shared global state / cache between collection and document queries [(instead of Redux??)](#shared-global-state-between-documents-and-collections)
+- Shared state / cache between collection and document queries [(instead of Redux??)](#shared-global-state-between-documents-and-collections)
 - Works with both **React** and **React Native**.
 - Blazing fast
 - `set`, `update`, and `add` update your global cache, instantly
@@ -351,14 +351,10 @@ _(optional)_ A dictionary with added options for the request. See the [options a
 
 Returns a dictionary with the following values:
 
-- `set(data, SetOptions?)`: Extends the `firestore` document `set` function.
-  - You can call this when you want to edit your document.
-  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular Firestore `set` function.
-  - The second argument is the same as the second argument for [Firestore `set`](https://firebase.google.com/docs/firestore/manage-data/add-data#set_a_document).
-- `update(data)`: Extends the Firestore document [`update` function](https://firebase.google.com/docs/firestore/manage-data/add-data#update-data).
+- `add(data)`: Extends the Firestore document [`add` function](https://firebase.google.com/docs/firestore/manage-data/add-data).
   - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `set` function.
 
-The dictionary also includes the following [from `useSWR`](https://github.com/zeit/swr#return-values):
+The returned dictionary also includes the following [from `useSWR`](https://github.com/zeit/swr#return-values):
 
 - `data`: data for the given key resolved by fetcher (or undefined if not loaded)
 - `error`: error thrown by fetcher (or undefined)
