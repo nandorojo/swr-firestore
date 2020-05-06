@@ -108,7 +108,7 @@ import React from 'react'
 import { useCollection } from '@nandorojo/swr-firestore'
 import { Text } from 'react-native'
 
-export default function User() {
+export default function UserList() {
   const { data, update, error } = useDocument(`users`)
 
   if (error) return <Text>Error!</Text>
