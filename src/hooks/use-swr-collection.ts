@@ -3,6 +3,7 @@ import { fuego } from '../context'
 import { useRef, useEffect, useMemo, useCallback } from 'react'
 // import { useMemoOne as useMemo } from 'use-memo-one'
 import { empty } from '../helpers/empty'
+import { collectionCache } from '../classes/Cache'
 
 type Document<T = {}> = T & { id: string }
 
@@ -288,6 +289,12 @@ export const useCollection = <
     }
     // should depend on the path, queyr, and listen being the same...
   }, [path, listen, memoQueryString])
+
+  // add the collection to the cache,
+  // so that we can mutate it from document calls later
+  useEffect(() => {
+    if (path) collectionCache.addCollectionToCache(path, memoQueryString)
+  }, [path, memoQueryString])
 
   const { data, isValidating, revalidate, mutate, error } = swr
 

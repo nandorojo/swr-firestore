@@ -4,6 +4,7 @@ import { useRef, useEffect, useCallback } from 'react'
 import { empty } from '../helpers/empty'
 import { Document } from '../types/Document'
 import { SetOptions } from '@firebase/firestore-types'
+import { collectionCache } from '../classes/Cache'
 
 type Options<Doc extends Document = Document> = {
   listen?: boolean
@@ -42,20 +43,29 @@ const createListenerAsync = async <Doc extends Document = Document>(
       // update the document in any collections listening to the same document
       let collection: string | string[] = path.split(`/${doc.id}`)
       collection.pop() // remove last item, which is the /id
-      collection = collection.join('')
+      collection = collection.join('/')
+
       if (collection) {
-        mutate(
-          [collection],
-          (currentState: Doc[] = empty.array): Doc[] => {
-            return currentState.map(document => {
-              if (document.id === doc.id) {
-                return data
-              }
-              return document
-            })
-          },
-          false
-        )
+        collectionCache
+          .getSWRKeysFromCollectionPath(collection)
+          .forEach(key => {
+            mutate(
+              key,
+              (currentState: Doc[] = empty.array): Doc[] => {
+                // don't mutate the current state if it doesn't include this doc
+                if (!currentState.some(doc => doc.id === data.id)) {
+                  return currentState
+                }
+                return currentState.map(document => {
+                  if (document.id === data.id) {
+                    return data
+                  }
+                  return document
+                })
+              },
+              false
+            )
+          })
       }
 
       // the first time the listener fires, we resolve the promise with initial data
@@ -127,20 +137,28 @@ export const useDocument = <
       // update the document in any collections listening to the same document
       let collection: string | string[] = path.split(`/${data.id}`)
       collection.pop() // remove last item, which is the /id
-      collection = collection.join('')
+      collection = collection.join('/') // rejoin the path
       if (collection) {
-        mutate(
-          [collection],
-          (currentState: Doc[] = empty.array): Doc[] => {
-            return currentState.map(document => {
-              if (document.id === data.id) {
-                return data
-              }
-              return document
-            })
-          },
-          false
-        )
+        collectionCache
+          .getSWRKeysFromCollectionPath(collection)
+          .forEach(key => {
+            mutate(
+              key,
+              (currentState: Doc[] = empty.array): Doc[] => {
+                // don't mutate the current state if it doesn't include this doc
+                if (!currentState.some(doc => doc.id === data.id)) {
+                  return currentState
+                }
+                return currentState.map(document => {
+                  if (document.id === data.id) {
+                    return data
+                  }
+                  return document
+                })
+              },
+              false
+            )
+          })
       }
 
       return data
