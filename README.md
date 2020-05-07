@@ -16,7 +16,7 @@ You can now fetch, add, and mutate Firestore data with zero boilerplate.
 
 ## Features
 
-- Shared global state / cache between collection and document queries [(instead of Redux??)](#shared-global-state-between-documents-and-collections)
+- Shared state / cache between collection and document queries [(instead of Redux??)](#shared-global-state-between-documents-and-collections)
 - Works with both **React** and **React Native**.
 - Blazing fast
 - `set`, `update`, and `add` update your global cache, instantly
@@ -50,6 +50,11 @@ yarn add @nandorojo/swr-firestore
 npm install @nandorojo/swr-firestore
 ```
 
+Install firebase:
+```sh
+expo install firebase
+```
+
 ## Set up
 
 In the root of your app, **create an instance of Fuego** and pass it to the **FuegoProvider**.
@@ -60,6 +65,8 @@ If you're using `next.js`, this goes in your `pages/_app.js` file.
 
 ```jsx
 import React from 'react'
+import 'firebase/firestore'
+import 'firebase/auth'
 import { Fuego, FuegoProvider } from '@nandorojo/swr-firestore'
 
 const firebaseConfig = {
@@ -81,15 +88,38 @@ Make sure to create your `Fuego` instance outside of the component. The only arg
 
 _Assuming you've already completed the setup..._
 
+### Subscribe to a document
+
 ```js
 import React from 'react'
 import { useDocument } from '@nandorojo/swr-firestore'
+import { Text } from 'react-native'
 
 export default function User() {
   const user = { id: 'Fernando' }
-  const { data, update, error } = useDocument(`users/${user.id}`)
+  const { data, update, error } = useDocument(`users/${user.id}`, { listen: true })
 
-  // ...render here
+  if (error) return <Text>Error!</Text>
+  if (!data) return <Text>Loading...</Text>
+  
+  return <Text>Name: {user.name}</Text>
+}
+```
+
+### Get a collection
+
+```js
+import React from 'react'
+import { useCollection } from '@nandorojo/swr-firestore'
+import { Text } from 'react-native'
+
+export default function UserList() {
+  const { data, update, error } = useCollection(`users`)
+
+  if (error) return <Text>Error!</Text>
+  if (!data) return <Text>Loading...</Text>
+  
+  return data.map(user => <Text key={user.id}>{user.name}</Text>)
 }
 ```
 
@@ -345,14 +375,10 @@ _(optional)_ A dictionary with added options for the request. See the [options a
 
 Returns a dictionary with the following values:
 
-- `set(data, SetOptions?)`: Extends the `firestore` document `set` function.
-  - You can call this when you want to edit your document.
-  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular Firestore `set` function.
-  - The second argument is the same as the second argument for [Firestore `set`](https://firebase.google.com/docs/firestore/manage-data/add-data#set_a_document).
-- `update(data)`: Extends the Firestore document [`update` function](https://firebase.google.com/docs/firestore/manage-data/add-data#update-data).
+- `add(data)`: Extends the Firestore document [`add` function](https://firebase.google.com/docs/firestore/manage-data/add-data).
   - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `set` function.
 
-The dictionary also includes the following [from `useSWR`](https://github.com/zeit/swr#return-values):
+The returned dictionary also includes the following [from `useSWR`](https://github.com/zeit/swr#return-values):
 
 - `data`: data for the given key resolved by fetcher (or undefined if not loaded)
 - `error`: error thrown by fetcher (or undefined)
