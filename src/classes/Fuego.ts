@@ -1,7 +1,7 @@
 import * as firebase from 'firebase'
 
-import 'firebase/firestore'
-import 'firebase/auth'
+// import 'firebase/firestore'
+// import 'firebase/auth'
 
 type Config = Parameters<typeof firebase.initializeApp>[0]
 

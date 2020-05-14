@@ -140,7 +140,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
           (docData.exists || docData.id || docData.hasPendingWrites)
         ) {
           console.warn(
-            '[use-document] warning: Your document, ',
+            '[use-collection] warning: Your document, ',
             doc.id,
             ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
           )
