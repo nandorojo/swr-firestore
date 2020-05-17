@@ -1,6 +1,6 @@
 {
   "name": "@nandorojo/swr-firestore",
-  "version": "0.7.0-alpha.4",
+  "version": "0.7.0-alpha.5",
   "description": "SWR React hooks for Firestore, that you can actually use in production, on every screen.",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",
