@@ -1,6 +1,6 @@
 import React, { useEffect, useContext } from 'react'
 import { createContext, ReactNode } from 'react'
-import { Fuego } from 'src/classes/Fuego'
+import { Fuego } from '../classes/Fuego'
 
 // @ts-ignore
 type Context = {
