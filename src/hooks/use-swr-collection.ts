@@ -160,9 +160,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
   })
 }
 
-type Options<Doc extends Document = Document> = {
-  listen?: boolean
-} & ConfigInterface<Doc[] | null>
+type Options<Doc extends Document = Document> = ConfigInterface<Doc[] | null>
 /**
  * Call a Firestore Collection
  * @template Doc
@@ -175,13 +173,24 @@ export const useCollection = <
   Doc extends Document = Document<Data>
 >(
   path: string | null,
-  query: Ref = empty.object,
+  query: Ref & {
+    listen?: boolean
+  } = empty.object,
   options: Options<Doc> = empty.object
 ) => {
   const unsubscribeRef = useRef<ListenerReturnType['unsubscribe'] | null>(null)
-  const { listen = false, ...swrOptions } = options
+  const { ...swrOptions } = options
 
-  const { where, endAt, endBefore, startAfter, startAt, orderBy, limit } = query
+  const {
+    where,
+    endAt,
+    endBefore,
+    startAfter,
+    startAt,
+    orderBy,
+    limit,
+    listen = false,
+  } = query
 
   // why not just put this into the ref directly?
   // so that we can use the useEffect down below that triggers revalidate()
