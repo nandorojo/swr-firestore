@@ -13,6 +13,7 @@ import {
   WhereFilterOp,
   Query,
 } from '@firebase/firestore-types'
+import { isDev } from 'src/helpers/is-dev'
 
 type OrderByArray = [string | FieldPath, OrderByDirection]
 type OrderByItem = OrderByArray | string
@@ -135,7 +136,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
           hasPendingWrites: doc.metadata.hasPendingWrites,
         } as any
         if (
-          __DEV__ &&
+          isDev &&
           // @ts-ignore
           (docData.exists || docData.id || docData.hasPendingWrites)
         ) {
@@ -249,7 +250,7 @@ export const useCollection = <
           // update individual docs in the cache
           mutateStatic(`${path}/${doc.id}`, docToAdd, false)
           if (
-            __DEV__ &&
+            isDev &&
             // @ts-ignore
             (docData.exists || docData.id || docData.hasPendingWrites)
           ) {

@@ -5,6 +5,7 @@ import { empty } from '../helpers/empty'
 import { Document } from '../types/Document'
 import { SetOptions } from '@firebase/firestore-types'
 import { collectionCache } from '../classes/Cache'
+import { isDev } from 'src/helpers/is-dev'
 
 type Options<Doc extends Document = Document> = {
   listen?: boolean
@@ -29,7 +30,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
       } as any
       mutate(path, data, false)
       if (
-        __DEV__ &&
+        isDev &&
         // @ts-ignore
         (docData.exists || docData.id || docData.hasPendingWrites)
       ) {
@@ -116,7 +117,7 @@ export const useDocument = <
         .then(doc => {
           const docData = doc.data() ?? empty.object
           if (
-            __DEV__ &&
+            isDev &&
             // @ts-ignore
             (docData.exists || docData.id || docData.hasPendingWrites)
           ) {
