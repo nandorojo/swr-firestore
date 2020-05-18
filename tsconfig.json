@@ -2,7 +2,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@nandorojo/fuego": ["./src/index"]
+      "@nandorojo/swr-firestore": ["./src/index"]
     },
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,

@@ -13,7 +13,7 @@ import {
   WhereFilterOp,
   Query,
 } from '@firebase/firestore-types'
-import { isDev } from 'src/helpers/is-dev'
+import { isDev } from '../helpers/is-dev'
 
 type OrderByArray = [string | FieldPath, OrderByDirection]
 type OrderByItem = OrderByArray | string

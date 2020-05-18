@@ -5,7 +5,7 @@ import { empty } from '../helpers/empty'
 import { Document } from '../types/Document'
 import { SetOptions } from '@firebase/firestore-types'
 import { collectionCache } from '../classes/Cache'
-import { isDev } from 'src/helpers/is-dev'
+import { isDev } from '../helpers/is-dev'
 
 type Options<Doc extends Document = Document> = {
   listen?: boolean
