@@ -15,18 +15,30 @@ import {
 } from '@firebase/firestore-types'
 import { isDev } from '../helpers/is-dev'
 
-type OrderByArray = [string | FieldPath, OrderByDirection]
-type OrderByItem = OrderByArray | string
-type OrderByType = OrderByItem | OrderByArray[]
+// here we get the "key" from our data, to add intellisense for any "orderBy" in the queries and such.
+type OrderByArray<Doc extends object = {}, Key = keyof Doc> = [
+  Key | FieldPath,
+  OrderByDirection
+]
+type OrderByItem<Doc extends object = {}, Key = keyof Doc> =
+  | OrderByArray<Doc>
+  | Key
+type OrderByType<Doc extends object = {}> =
+  | OrderByItem<Doc>
+  | OrderByArray<Doc>[]
 
-type WhereItem = [string | FieldPath, WhereFilterOp, unknown]
-type WhereArray = WhereItem[]
-type WhereType = WhereItem | WhereArray
+type WhereItem<Doc extends object = {}, Key = keyof Doc> = [
+  Key | FieldPath,
+  WhereFilterOp,
+  unknown
+]
+type WhereArray<Doc extends object = {}> = WhereItem<Doc>[]
+type WhereType<Doc extends object = {}> = WhereItem<Doc> | WhereArray<Doc>
 
-type Ref = {
+type Ref<Doc extends object = {}> = {
   limit?: number
-  orderBy?: OrderByType
-  where?: WhereType
+  orderBy?: OrderByType<Doc>
+  where?: WhereType<Doc>
 
   /**
    * For now, this can only be a number, since it has to be JSON serializable.
@@ -60,19 +72,19 @@ type Ref = {
   // endBefore?: number | DocumentSnapshot
 }
 
-const createRef = (
+const createRef = <Doc extends object = {}>(
   path: string,
-  { where, orderBy, limit, startAt, endAt, startAfter, endBefore }: Ref
+  { where, orderBy, limit, startAt, endAt, startAfter, endBefore }: Ref<Doc>
 ) => {
   let ref: Query = fuego.db.collection(path)
 
   if (where) {
-    function multipleConditions(w: WhereType): w is WhereArray {
+    function multipleConditions(w: WhereType<Doc>): w is WhereArray<Doc> {
       return !!(w as WhereArray) && Array.isArray(w[0])
     }
     if (multipleConditions(where)) {
       where.forEach(w => {
-        ref = ref.where(w[0], w[1], w[2])
+        ref = ref.where(w[0] as string | FieldPath, w[1], w[2])
       })
     } else if (typeof where[0] === 'string' && typeof where[1] === 'string') {
       ref = ref.where(where[0], where[1], where[2])
@@ -82,16 +94,16 @@ const createRef = (
     if (typeof orderBy === 'string') {
       ref = ref.orderBy(orderBy)
     } else if (Array.isArray(orderBy)) {
-      function multipleOrderBy(o: OrderByType): o is OrderByArray[] {
-        return Array.isArray((o as OrderByArray[])[0])
+      function multipleOrderBy(o: OrderByType<Doc>): o is OrderByArray<Doc>[] {
+        return Array.isArray((o as OrderByArray<Doc>[])[0])
       }
       if (multipleOrderBy(orderBy)) {
-        orderBy.forEach(order => {
-          ref = ref.orderBy(...order)
+        orderBy.forEach(([order, direction]) => {
+          ref = ref.orderBy(order as string | FieldPath, direction)
         })
       } else {
         const [order, direction] = orderBy
-        ref = ref.orderBy(order, direction)
+        ref = ref.orderBy(order as string | FieldPath, direction)
       }
     }
   }
@@ -174,7 +186,7 @@ export const useCollection = <
   Doc extends Document = Document<Data>
 >(
   path: string | null,
-  query: Ref & {
+  query: Ref<Data> & {
     listen?: boolean
   } = empty.object,
   options: Options<Doc> = empty.object
