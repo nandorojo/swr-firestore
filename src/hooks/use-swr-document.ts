@@ -247,7 +247,7 @@ export const useDocument = <
     data,
     isValidating,
     revalidate,
-    mutate,
+    mutate: connectedMutate,
     error,
     set,
     update,
