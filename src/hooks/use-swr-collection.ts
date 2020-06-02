@@ -290,8 +290,10 @@ export const useCollection = <
   // but then a `users` fetch with `listen` set to `false` updated, it wouldn't mutate both.
   // thus, we move the `listen` and option to a ref user in `useSWR`,
   // and we call `revalidate` if it changes.
+  const mounted = useRef(false)
   useEffect(() => {
-    if (revalidateRef.current) revalidateRef.current()
+    if (mounted.current) revalidateRef.current()
+    else mounted.current = true
   }, [listen])
 
   // this MUST be after the previous effect to avoid duplicate initial validations.
