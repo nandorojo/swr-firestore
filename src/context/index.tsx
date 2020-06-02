@@ -34,12 +34,13 @@ export const useFuegoContext = () => {
   return context
 }
 
-export const FuegoProvider = ({ children, fuego: f }: Props) => {
+export const FuegoProvider = ({ children, fuego }: Props) => {
   // const [listeners, setListeners] = useState<Context['listeners']>({})
 
-  useEffect(() => {
-    fuego = f
-  }, [f])
+  setFuego(fuego)
+  // useEffect(() => {
+  //   fuego = f
+  // }, [f])
 
   // const listeners = useRef<{
   // 	[name: string]: null | {
@@ -81,8 +82,6 @@ export const FuegoProvider = ({ children, fuego: f }: Props) => {
   // }, [])
 
   return (
-    <FuegoContext.Provider value={{ fuego: f }}>
-      {children}
-    </FuegoContext.Provider>
+    <FuegoContext.Provider value={{ fuego }}>{children}</FuegoContext.Provider>
   )
 }
