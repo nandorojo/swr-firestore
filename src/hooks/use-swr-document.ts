@@ -179,8 +179,10 @@ export const useDocument = <
   // the key.
   // thus, we move the `listen` and `queryString` options to refs passed to `useSWR`,
   // and we call `revalidate` if either of them change.
+  const mounted = useRef(false)
   useEffect(() => {
-    if (revalidateRef.current) revalidateRef.current()
+    if (mounted.current) revalidateRef.current()
+    else mounted.current = true
   }, [listen])
 
   // this MUST be after the previous effect to avoid duplicate initial validations.
