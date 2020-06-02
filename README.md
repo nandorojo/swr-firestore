@@ -127,19 +127,19 @@ export default function UserList() {
 
 ## Simple examples
 
-Query a users collection:
+### Query a users collection:
 
 ```typescript
 const { data } = useCollection('users')
 ```
 
-Subscribe for real-time updates:
+### Subscribe for real-time updates:
 
 ```typescript
 const { data } = useDocument(`users/${user.id}`, { listen: true })
 ```
 
-Make a complex collection query:
+### Make a complex collection query:
 
 ```typescript
 const { data } = useCollection('users', {
@@ -150,7 +150,7 @@ const { data } = useCollection('users', {
 })
 ```
 
-Pass options from SWR to your document query:
+### Pass options from SWR to your document query:
 
 ```typescript
 // pass SWR options
@@ -161,7 +161,7 @@ const { data } = useDocument('albums/nothing-was-the-same', {
 })
 ```
 
-Pass options from SWR to your collection query:
+### Pass options from SWR to your collection query:
 
 ```typescript
 // pass SWR options
@@ -183,7 +183,7 @@ const { data } = useCollection(
 )
 ```
 
-Add data to your collection:
+### Add data to your collection:
 
 ```typescript
 const { data, add } = useCollection('albums', {
@@ -200,7 +200,7 @@ const onPress = () => {
 }
 ```
 
-Set document data:
+### Set document data:
 
 ```typescript
 const { data, set, update } = useDocument('albums/dark-lane-demo-tapes')
@@ -221,7 +221,7 @@ const onReleaseAlbum = () => {
 }
 ```
 
-Paginate a collection: 
+### Paginate a collection: 
 
 ```typescript
 import React from "react";
