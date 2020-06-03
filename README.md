@@ -232,7 +232,7 @@ Once the key is set to a string, the request will send.
 import { useDoormanUser } from 'react-doorman'
 
 const { uid } = useDoormanUser()
-const { data } = useDocument(uid ? 'users' : null, {
+const { data } = useCollection(uid ? 'users' : null, {
   where: ['friends', 'array-contains', uid]
 })
 ```
