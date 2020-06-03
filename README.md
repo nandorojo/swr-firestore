@@ -221,6 +221,33 @@ const onReleaseAlbum = () => {
 }
 ```
 
+### Use dynamic fields in a request: 
+If you pass `null` as the collection or document key, the request won't send.
+
+Once the key is set to a string, the request will send.
+
+**Get list of users who have you in their friends list**
+
+```typescript
+import { useDoormanUser } from 'react-doorman'
+
+const { uid } = useDoormanUser()
+const { data } = useDocument(uid ? 'users' : null, {
+  where: ['friends', 'array-contains', uid]
+})
+```
+
+**Get your favorite song**
+
+```typescript
+const me = { id: 'fernando' }
+
+const { data: user } = useDocument<{ favoriteSong: string }>(`users/${me.id}`)
+
+// only send the request once the user.favoriteSong exists!
+const { data: song } = useDocument(user?.favoriteSong ? `songs/{user.favoriteSong}` : null)
+```
+
 ### Paginate a collection: 
 
 Video [here](https://imgur.com/a/o9AlI4N).
