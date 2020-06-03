@@ -223,6 +223,8 @@ const onReleaseAlbum = () => {
 
 ### Paginate a collection: 
 
+Video [here](https://imgur.com/a/o9AlI4N).
+
 ```typescript
 import React from "react";
 import { fuego, useCollection } from "@nandorojo/swr-firestore";
