@@ -337,6 +337,21 @@ const { data, error } = useDocument(`users/${user.id}`, { listen: true })
 
 # API
 
+## Imports
+
+```typescript
+import {
+  useDocument,
+  useCollection,
+  revalidateDocument,
+  revalidateCollection,
+  // these all update BOTH Firestore & the local cache ⚡️
+  set,    // set a firestore document
+  update, // update a firestore document
+  add.    // add a firestore document to a collection
+} from '@nandorojo/swr-firestore'
+```
+
 ## `useDocument(path, options)`
 
 ```js
@@ -470,7 +485,7 @@ _(optional)_ A dictionary with added options for the request. See the [options a
 Returns a dictionary with the following values:
 
 - `add(data)`: Extends the Firestore document [`add` function](https://firebase.google.com/docs/firestore/manage-data/add-data).
-  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `set` function.
+  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `add` function provided by Firestore.
 
 The returned dictionary also includes the following [from `useSWR`](https://github.com/zeit/swr#return-values):
 
@@ -478,6 +493,43 @@ The returned dictionary also includes the following [from `useSWR`](https://gith
 - `error`: error thrown by fetcher (or undefined)
 - `isValidating`: if there's a request or revalidation loading
 - `mutate(data?, shouldRevalidate?)`: function to mutate the cached data
+
+## `set(path, data, SetOptions?)`
+
+Extends the `firestore` document `set` function.
+  - You can call this when you want to edit your document.
+  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular Firestore `set` function.
+  - The second argument is the same as the second argument for [Firestore `set`](https://firebase.google.com/docs/firestore/manage-data/add-data#set_a_document).
+
+This is useful if you want to `set` a document in a component that isn't connected to the `useDocument` hook.
+
+## `update(path, data)`: 
+
+Extends the Firestore document [`update` function](https://firebase.google.com/docs/firestore/manage-data/add-data#update-data).
+  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `set` function.
+  
+This is useful if you want to `update` a document in a component that isn't connected to the `useDocument` hook.
+
+
+## `add(path, data)`: 
+
+Extends the Firestore document [`add` function](https://firebase.google.com/docs/firestore/manage-data/add-data).
+  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `add` function.
+  - Use this **instead** of `firebase.firestore().collection('users').add(data)`
+  
+## `revalidateDocument(path)`
+
+Refetch a document from Firestore, and update the local cache. Useful if you want to update a given document without calling the connected `revalidate` function from use `useDocument` hook.
+
+- Only argument is the Firestore document path (ex: `users/Fernando`)
+
+
+## `revalidateCollection(path)`
+
+Refetch a collection query from Firestore, and update the local cache. Useful if you want to update a given collection without calling the connected `revalidate` function from use `useCollection` hook.
+
+- Only argument is the Firestore document path (ex: `users`)
+- **Note** Calling `revalidateCollection` will update _all_ collection queries. If you're paginating data for a given collection, you probably won't want to use this function for that collection.
 
 # Features
 
