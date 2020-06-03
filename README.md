@@ -245,7 +245,7 @@ const me = { id: 'fernando' }
 const { data: user } = useDocument<{ favoriteSong: string }>(`users/${me.id}`)
 
 // only send the request once the user.favoriteSong exists!
-const { data: song } = useDocument(user?.favoriteSong ? `songs/{user.favoriteSong}` : null)
+const { data: song } = useDocument(user?.favoriteSong ? `songs/${user.favoriteSong}` : null)
 ```
 
 ### Paginate a collection: 
