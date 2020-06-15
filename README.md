@@ -348,7 +348,8 @@ import {
   // these all update BOTH Firestore & the local cache ⚡️
   set,    // set a firestore document
   update, // update a firestore document
-  add.    // add a firestore document to a collection
+  add,    // add a firestore document to a collection
+  fuego   // get the firebase instance used by this lib
 } from '@nandorojo/swr-firestore'
 ```
 
@@ -530,6 +531,20 @@ Refetch a collection query from Firestore, and update the local cache. Useful if
 
 - Only argument is the Firestore document path (ex: `users`)
 - **Note** Calling `revalidateCollection` will update _all_ collection queries. If you're paginating data for a given collection, you probably won't want to use this function for that collection.
+
+## `fuego`
+
+The current firebase instance used by this library. Exports the following fields:
+  - `db`: the current firestore collection instance
+  - `auth`: the `firebase.auth` variable.
+
+```js
+import { fuego } from '@nandorojo/swr-firestore'
+
+fuego.db.doc('users/Fernando').get()
+
+fuego.auth().currentUser?.uid
+```
 
 # Features
 
