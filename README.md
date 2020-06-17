@@ -127,19 +127,19 @@ export default function UserList() {
 
 ## Simple examples
 
-Query a users collection:
+### Query a users collection:
 
 ```typescript
 const { data } = useCollection('users')
 ```
 
-Subscribe for real-time updates:
+### Subscribe for real-time updates:
 
 ```typescript
 const { data } = useDocument(`users/${user.id}`, { listen: true })
 ```
 
-Make a complex collection query:
+### Make a complex collection query:
 
 ```typescript
 const { data } = useCollection('users', {
@@ -150,7 +150,7 @@ const { data } = useCollection('users', {
 })
 ```
 
-Pass options from SWR to your document query:
+### Pass options from SWR to your document query:
 
 ```typescript
 // pass SWR options
@@ -161,7 +161,7 @@ const { data } = useDocument('albums/nothing-was-the-same', {
 })
 ```
 
-Pass options from SWR to your collection query:
+### Pass options from SWR to your collection query:
 
 ```typescript
 // pass SWR options
@@ -183,7 +183,7 @@ const { data } = useCollection(
 )
 ```
 
-Add data to your collection:
+### Add data to your collection:
 
 ```typescript
 const { data, add } = useCollection('albums', {
@@ -200,7 +200,7 @@ const onPress = () => {
 }
 ```
 
-Set document data:
+### Set document data:
 
 ```typescript
 const { data, set, update } = useDocument('albums/dark-lane-demo-tapes')
@@ -218,6 +218,100 @@ const onReleaseAlbum = () => {
   update({
     released: true,
   })
+}
+```
+
+### Use dynamic fields in a request: 
+If you pass `null` as the collection or document key, the request won't send.
+
+Once the key is set to a string, the request will send.
+
+**Get list of users who have you in their friends list**
+
+```typescript
+import { useDoormanUser } from 'react-doorman'
+
+const { uid } = useDoormanUser()
+const { data } = useCollection(uid ? 'users' : null, {
+  where: ['friends', 'array-contains', uid]
+})
+```
+
+**Get your favorite song**
+
+```typescript
+const me = { id: 'fernando' }
+
+const { data: user } = useDocument<{ favoriteSong: string }>(`users/${me.id}`)
+
+// only send the request once the user.favoriteSong exists!
+const { data: song } = useDocument(user?.favoriteSong ? `songs/${user.favoriteSong}` : null)
+```
+
+### Paginate a collection: 
+
+Video [here](https://imgur.com/a/o9AlI4N).
+
+```typescript
+import React from "react";
+import { fuego, useCollection } from "@nandorojo/swr-firestore";
+
+const collection = "dump";
+const limit = 1;
+const orderBy = "text";
+
+export default function Paginate() {
+  const { data, mutate } = useCollection<{ text: string }>(
+    collection,
+    {
+      limit,
+      orderBy,
+    },
+    {
+      // this lets us update the local cache + paginate without interruptions
+      revalidateOnFocus: false,
+      refreshWhenHidden: false,
+      refreshWhenOffline: false,
+      refreshInterval: 0,
+    }
+  );
+
+  const paginate = async () => {
+    if (!data?.length) return;
+
+    const ref = fuego.db.collection(collection);
+
+    // get the last document in our current query
+    // ideally we could pass just a doc ID, but firestore requires the doc snapshot
+    const startAfterDocument = await ref.doc(data[data.length - 1].id).get();
+
+    // get more documents, after the most recent one we have
+    const moreDocs = await ref
+      .orderBy(orderBy)
+      .startAfter(startAfterDocument)
+      .limit(limit)
+      .get()
+      .then((d) => {
+        const docs = [];
+        d.docs.forEach((doc) => docs.push({ ...doc.data(), id: doc.id }));
+        return docs;
+      });
+
+    // mutate our local cache, adding the docs we just added
+    // set revalidate to false to prevent SWR from revalidating on its own
+    mutate((state) => [...state, ...moreDocs], false);
+  };
+
+  return data ? (
+    <div>
+      {data.map(({ id, text }) => (
+        <div key={id}>{text}</div>
+      ))}
+      <button onClick={paginate}>paginate</button>
+    </div>
+  ) : (
+    <div>Loading...</div>
+  );
 }
 ```
 
@@ -242,6 +336,22 @@ const { data, error } = useDocument(`users/${user.id}`, { listen: true })
 ```
 
 # API
+
+## Imports
+
+```typescript
+import {
+  useDocument,
+  useCollection,
+  revalidateDocument,
+  revalidateCollection,
+  // these all update BOTH Firestore & the local cache ⚡️
+  set,    // set a firestore document
+  update, // update a firestore document
+  add,    // add a firestore document to a collection
+  fuego   // get the firebase instance used by this lib
+} from '@nandorojo/swr-firestore'
+```
 
 ## `useDocument(path, options)`
 
@@ -376,7 +486,7 @@ _(optional)_ A dictionary with added options for the request. See the [options a
 Returns a dictionary with the following values:
 
 - `add(data)`: Extends the Firestore document [`add` function](https://firebase.google.com/docs/firestore/manage-data/add-data).
-  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `set` function.
+  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `add` function provided by Firestore.
 
 The returned dictionary also includes the following [from `useSWR`](https://github.com/zeit/swr#return-values):
 
@@ -384,6 +494,57 @@ The returned dictionary also includes the following [from `useSWR`](https://gith
 - `error`: error thrown by fetcher (or undefined)
 - `isValidating`: if there's a request or revalidation loading
 - `mutate(data?, shouldRevalidate?)`: function to mutate the cached data
+
+## `set(path, data, SetOptions?)`
+
+Extends the `firestore` document `set` function.
+  - You can call this when you want to edit your document.
+  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular Firestore `set` function.
+  - The second argument is the same as the second argument for [Firestore `set`](https://firebase.google.com/docs/firestore/manage-data/add-data#set_a_document).
+
+This is useful if you want to `set` a document in a component that isn't connected to the `useDocument` hook.
+
+## `update(path, data)`: 
+
+Extends the Firestore document [`update` function](https://firebase.google.com/docs/firestore/manage-data/add-data#update-data).
+  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `set` function.
+  
+This is useful if you want to `update` a document in a component that isn't connected to the `useDocument` hook.
+
+
+## `add(path, data)`: 
+
+Extends the Firestore document [`add` function](https://firebase.google.com/docs/firestore/manage-data/add-data).
+  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `add` function.
+  - Use this **instead** of `firebase.firestore().collection('users').add(data)`
+  
+## `revalidateDocument(path)`
+
+Refetch a document from Firestore, and update the local cache. Useful if you want to update a given document without calling the connected `revalidate` function from use `useDocument` hook.
+
+- Only argument is the Firestore document path (ex: `users/Fernando`)
+
+
+## `revalidateCollection(path)`
+
+Refetch a collection query from Firestore, and update the local cache. Useful if you want to update a given collection without calling the connected `revalidate` function from use `useCollection` hook.
+
+- Only argument is the Firestore document path (ex: `users`)
+- **Note** Calling `revalidateCollection` will update _all_ collection queries. If you're paginating data for a given collection, you probably won't want to use this function for that collection.
+
+## `fuego`
+
+The current firebase instance used by this library. Exports the following fields:
+  - `db`: the current firestore collection instance
+  - `auth`: the `firebase.auth` variable.
+
+```js
+import { fuego } from '@nandorojo/swr-firestore'
+
+fuego.db.doc('users/Fernando').get()
+
+fuego.auth().currentUser?.uid
+```
 
 # Features
 
