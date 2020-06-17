@@ -232,7 +232,7 @@ export const useCollection = <
 
   const swr = useSWR<Doc[] | null>(
     // if the path is null, this means we don't want to fetch yet.
-    [path, memoQueryString],
+    path === null ? null : [path, memoQueryString],
     async (path: string, queryString: string) => {
       if (shouldListen.current) {
         if (unsubscribeRef.current) {
@@ -322,18 +322,43 @@ export const useCollection = <
 
   const { data, isValidating, revalidate, mutate, error } = swr
 
+  /**
+   * `add(data)`: Extends the Firestore document [`add` function](https://firebase.google.com/docs/firestore/manage-data/add-data).
+   * - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `add` function provided by Firestore.
+   */
   const add = useCallback(
-    (data: Doc | Doc[]) => {
+    (data: Data | Data[]) => {
+      if (!path) return null
+
+      const dataArray = Array.isArray(data) ? data : [data]
+
+      const ref = fuego.db.collection(path)
+
+      const docsToAdd: Doc[] = (dataArray.map(doc => ({
+        ...doc,
+        // generate IDs we can use that in the local cache that match the server
+        id: ref.doc().id,
+      })) as unknown) as Doc[] // solve this annoying TS bug 😅
+
+      // add to cache
       if (!listen) {
         // we only update the local cache if we don't have a listener set up
+        // why? because Firestore automatically handles this part for subscriptions
         mutate(prevState => {
           const state = prevState ?? empty.array
-          const addedState = Array.isArray(data) ? data : [data]
-          return [...state, ...addedState]
-        })
+          return [...state, ...docsToAdd]
+        }, false)
       }
-      if (!path) return null
-      return fuego.db.collection(path).add(data)
+
+      // add to network
+      const batch = fuego.db.batch()
+
+      docsToAdd.forEach(({ id, ...doc }) => {
+        // take the ID out of the document
+        batch.set(ref.doc(id), doc)
+      })
+
+      return batch.commit()
     },
     [listen, mutate, path]
   )

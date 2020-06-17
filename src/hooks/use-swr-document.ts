@@ -203,18 +203,21 @@ export const useDocument = <
     // should depend on the path, and listen being the same...
   }, [path, listen])
 
+  /**
+   * `set(data, SetOptions?)`: Extends the `firestore` document `set` function.
+   * - You can call this when you want to edit your document.
+   * - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular Firestore `set` function.
+   * - The second argument is the same as the second argument for [Firestore `set`](https://firebase.google.com/docs/firestore/manage-data/add-data#set_a_document).
+   */
   const set = useCallback(
-    (
-      data: Partial<Omit<Doc, 'id' | 'hasPendingWrites' | 'exists'>>,
-      options?: SetOptions
-    ) => {
+    (data: Partial<Data>, options?: SetOptions) => {
       if (!listen) {
         // we only update the local cache if we don't have a listener set up
         // Why? firestore handles this for us for listeners.
         // @ts-ignore
         connectedMutate((prevState = empty.object) => {
-          // default we set merge to be true. but if it's false, then we don't merge old data
-          if (options?.merge === false) return data
+          // default we set merge to be false. this is annoying, but follows Firestore's preference.
+          if (!options?.merge) return data
           return {
             ...prevState,
             ...data,
@@ -227,6 +230,10 @@ export const useDocument = <
     [path, listen, connectedMutate]
   )
 
+  /**
+   * - `update(data)`: Extends the Firestore document [`update` function](https://firebase.google.com/docs/firestore/manage-data/add-data#update-data).
+   * - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `set` function.
+   */
   const update = useCallback(
     (data: Partial<Data>) => {
       if (!listen) {
