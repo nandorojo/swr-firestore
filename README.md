@@ -101,6 +101,8 @@ export default function App() {
 
 Make sure to create your `Fuego` instance outside of the component. The only argument `Fuego` takes is your firebase `config` variable.
 
+Under the hood, this step initializes firebase for you. No need to call `firebase.initializeApp`.
+
 ## Basic Usage
 
 _Assuming you've already completed the setup..._
