@@ -14,6 +14,19 @@ const { data } = useDocument('users/fernando')
 
 You can now fetch, add, and mutate Firestore data with zero boilerplate.
 
+## Shameless plug: Doorman
+
+Besides maintaining this project, I'm currently working on [**Doorman**](https://doorman.cool) – Firebase phone authentication for React Native apps. It comes with fully-baked & customizable UI components, stateful auth hooks, and more.
+
+<img src="https://gblobscdn.gitbook.com/assets%2F-M2lDpPbJsb_nHH5pJG0%2F-M2oEU_90gruqVYYM49_%2F-M2oEZ8mrfBxl3VrI17c%2Fjohannes-plenio-sPt5RIjKfpk-unsplash.jpg?alt=media&token=743c4f1d-9045-4d54-bb3a-852e45c6704f" />
+
+
+Even if you don't sign up for Doorman, the library (`react-doorman` or `react-native-doorman`) is free, and has many useful hooks for Firebase auth.
+
+- [Documentation](https://docs.doorman.cool)
+- [Website](https://doorman.cool)
+- [Sign Up](https://doorman.cool)
+
 ## Features
 
 - Shared state / cache between collection and document queries [(instead of Redux??)](#shared-global-state-between-documents-and-collections)
