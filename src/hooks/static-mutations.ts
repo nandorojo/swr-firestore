@@ -29,7 +29,7 @@ const revalidateCollection = (path: string) => {
 
 const set = <Data extends object = {}, Doc extends Document = Document<Data>>(
   path: string | null,
-  data: Partial<Omit<Doc, 'id' | 'hasPendingWrites' | 'exists'>>,
+  data: Partial<Data>,
   options?: SetOptions
 ) => {
   if (path === null) return null
@@ -44,7 +44,9 @@ const set = <Data extends object = {}, Doc extends Document = Document<Data>>(
 
   if (!isDocument)
     throw new Error(
-      `[@nandorojo/swr-firestore] called set() function with path: ${path}. This is not a valid document path.`
+      `[@nandorojo/swr-firestore] error: called set() function with path: ${path}. This is not a valid document path. 
+      
+data: ${JSON.stringify(data)}`
     )
 
   mutate(
@@ -66,12 +68,14 @@ const set = <Data extends object = {}, Doc extends Document = Document<Data>>(
   collectionCache.getSWRKeysFromCollectionPath(collection).forEach(key => {
     mutate(
       key,
-      (currentState: { id: string }[] = empty.array) => {
+      (currentState: Doc[] = empty.array) => {
         // don't mutate the current state if it doesn't include this doc
+        // why? to prevent creating a new reference of the state
+        // creating a new reference could trigger unnecessary re-renders
         if (!currentState.some(doc => doc.id === docId)) {
           return currentState
         }
-        return currentState.map((document = empty.object as { id: string }) => {
+        return currentState.map((document = empty.object as Doc) => {
           if (document.id === docId) {
             if (!options?.merge) return document
             return { ...document, ...data }
@@ -91,7 +95,7 @@ const update = <
   Doc extends Document = Document<Data>
 >(
   path: string | null,
-  data: Partial<Omit<Doc, 'id' | 'hasPendingWrites' | 'exists'>>
+  data: Partial<Data>
 ) => {
   if (path === null) return null
   const isDocument =
@@ -104,7 +108,9 @@ const update = <
 
   if (!isDocument)
     throw new Error(
-      `[@nandorojo/swr-firestore] called set() function with path: ${path}. This is not a valid document path.`
+      `[@nandorojo/swr-firestore] error: called update function with path: ${path}. This is not a valid document path. 
+      
+data: ${JSON.stringify(data)}`
     )
 
   mutate(
