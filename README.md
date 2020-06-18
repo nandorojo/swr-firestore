@@ -63,7 +63,13 @@ npm install @nandorojo/swr-firestore
 
 Install firebase:
 ```sh
+# if you're using expo:
 expo install firebase
+
+# if you aren't using expo:
+yarn add firebase
+# or
+npm i firebase
 ```
 
 ## Set up
