@@ -1,6 +1,6 @@
 {
   "name": "@nandorojo/swr-firestore",
-  "version": "0.7.9-alpha.1",
+  "version": "0.8.0-alpha.1",
   "description": "SWR React hooks for Firestore, that you can actually use in production, on every screen.",
   "main": "lib/commonjs/index.js",
   "module": "lib/module/index.js",
@@ -39,6 +39,7 @@
     "@react-native-community/eslint-config": "^0.0.7",
     "@release-it/conventional-changelog": "^1.1.0",
     "@types/jest": "^25.1.2",
+    "@types/lodash": "^4.14.155",
     "@types/react": "^16.9.19",
     "@types/react-native": "0.61.10",
     "commitlint": "^8.3.4",
@@ -103,6 +104,7 @@
   },
   "dependencies": {
     "@expo/results": "^1.0.0",
+    "lodash": "^4.17.15",
     "swr": "^0.2.0"
   }
 }
