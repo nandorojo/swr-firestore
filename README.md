@@ -14,17 +14,6 @@ const { data } = useDocument('users/fernando')
 
 You can now fetch, add, and mutate Firestore data with zero boilerplate.
 
-## Sponsor / Shameless plug: Doorman
-
-Besides maintaining this project, I'm currently working on [**Doorman**](https://doorman.cool) – Firebase phone authentication for React Native apps. It comes with fully-baked & customizable UI components, stateful auth hooks, and more.
-
-
-Even if you don't sign up for Doorman, the library (`react-doorman` or `react-native-doorman`) is free, and has many useful hooks for Firebase auth.
-
-- [Doorman Documentation](https://docs.doorman.cool)
-- [Doorman Website](https://doorman.cool)
-- [Doorman Sign Up](https://doorman.cool)
-
 ## Features
 
 - Shared state / cache between collection and document queries [(instead of Redux??)](#shared-global-state-between-documents-and-collections)
@@ -51,6 +40,17 @@ _"With SWR, components will get a stream of data updates constantly and automati
 - SSR support
 - Suspense mode
 - Minimal API
+
+## Sponsor / Shameless plug: Doorman
+
+Besides maintaining this project, I'm currently working on [**Doorman**](https://doorman.cool) – Firebase phone authentication for React Native apps. It comes with fully-baked & customizable UI components, stateful auth hooks, and more.
+
+
+Even if you don't sign up for Doorman, the library (`react-doorman` or `react-native-doorman`) is free, and has many useful hooks for Firebase auth.
+
+- [Doorman Documentation](https://docs.doorman.cool)
+- [Doorman Website](https://doorman.cool)
+- [Doorman Sign Up](https://doorman.cool)
 
 ## Installation
 
@@ -100,6 +100,8 @@ export default function App() {
 ```
 
 Make sure to create your `Fuego` instance outside of the component. The only argument `Fuego` takes is your firebase `config` variable.
+
+Under the hood, this step initializes firebase for you. No need to call `firebase.initializeApp`.
 
 ## Basic Usage
 
