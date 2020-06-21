@@ -14,6 +14,7 @@ import {
   Query,
 } from '@firebase/firestore-types'
 import { isDev } from '../helpers/is-dev'
+import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
 
 // here we get the "key" from our data, to add intellisense for any "orderBy" in the queries and such.
 type OrderByArray<Doc extends object = {}, Key = keyof Doc> = [
@@ -132,44 +133,54 @@ type ListenerReturnType<Doc extends Document = Document> = {
 
 const createListenerAsync = async <Doc extends Document = Document>(
   path: string,
-  queryString: string
+  queryString: string,
+  parseDates?: (string | keyof Doc)[]
 ): Promise<ListenerReturnType<Doc>> => {
   return new Promise(resolve => {
     const query: Ref = JSON.parse(queryString) ?? {}
     const ref = createRef(path, query)
-    const unsubscribe = ref.onSnapshot(querySnapshot => {
-      const data: Doc[] = []
-      querySnapshot.forEach(doc => {
-        const docData = doc.data() ?? empty.object
-        const docToAdd = {
-          ...docData,
-          id: doc.id,
-          exists: doc.exists,
-          hasPendingWrites: doc.metadata.hasPendingWrites,
-        } as any
-        if (
-          isDev &&
-          // @ts-ignore
-          (docData.exists || docData.id || docData.hasPendingWrites)
-        ) {
-          console.warn(
-            '[use-collection] warning: Your document, ',
-            doc.id,
-            ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
+    const unsubscribe = ref.onSnapshot(
+      { includeMetadataChanges: true },
+      querySnapshot => {
+        const data: Doc[] = []
+        querySnapshot.forEach(doc => {
+          const docData =
+            doc.data({
+              serverTimestamps: 'estimate',
+            }) ?? empty.object
+          const docToAdd = withDocumentDatesParsed(
+            {
+              ...docData,
+              id: doc.id,
+              exists: doc.exists,
+              hasPendingWrites: doc.metadata.hasPendingWrites,
+            } as any,
+            parseDates
           )
-        }
-        // update individual docs in the cache
-        mutateStatic(`${path}/${doc.id}`, docToAdd, false)
-        data.push(docToAdd)
-      })
-      // resolve initial data
-      resolve({
-        initialData: data,
-        unsubscribe,
-      })
-      // update on listener fire
-      mutateStatic([path, queryString], data, false)
-    })
+          if (
+            isDev &&
+            // @ts-ignore
+            (docData.exists || docData.id || docData.hasPendingWrites)
+          ) {
+            console.warn(
+              '[use-collection] warning: Your document, ',
+              doc.id,
+              ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
+            )
+          }
+          // update individual docs in the cache
+          mutateStatic(`${path}/${doc.id}`, docToAdd, false)
+          data.push(docToAdd)
+        })
+        // resolve initial data
+        resolve({
+          initialData: data,
+          unsubscribe,
+        })
+        // update on listener fire
+        mutateStatic([path, queryString], data, false)
+      }
+    )
   })
 }
 
@@ -188,6 +199,7 @@ export const useCollection = <
   path: string | null,
   query: Ref<Data> & {
     listen?: boolean
+    parseDates?: (string | keyof Doc)[]
   } = empty.object,
   options: Options<Doc> = empty.object
 ) => {
@@ -203,6 +215,7 @@ export const useCollection = <
     orderBy,
     limit,
     listen = false,
+    parseDates,
   } = query
 
   // why not just put this into the ref directly?
@@ -220,6 +233,11 @@ export const useCollection = <
       }),
     [endAt, endBefore, limit, orderBy, startAfter, startAt, where]
   )
+
+  const dateParser = useRef(parseDates)
+  useEffect(() => {
+    dateParser.current = parseDates
+  }, [parseDates])
 
   // we move listen to a Ref
   // why? because we shouldn't have to include "listen" in the key
@@ -241,7 +259,8 @@ export const useCollection = <
         }
         const { unsubscribe, initialData } = await createListenerAsync<Doc>(
           path,
-          queryString
+          queryString,
+          dateParser.current
         )
         unsubscribeRef.current = unsubscribe
         return initialData
@@ -252,13 +271,19 @@ export const useCollection = <
       const data: Doc[] = await ref.get().then(querySnapshot => {
         const array: typeof data = []
         querySnapshot.forEach(doc => {
-          const docData = doc.data() ?? empty.object
-          const docToAdd = {
-            ...docData,
-            id: doc.id,
-            exists: doc.exists,
-            hasPendingWrites: doc.metadata.hasPendingWrites,
-          } as any
+          const docData =
+            doc.data({
+              serverTimestamps: 'estimate',
+            }) ?? empty.object
+          const docToAdd = withDocumentDatesParsed(
+            {
+              ...docData,
+              id: doc.id,
+              exists: doc.exists,
+              hasPendingWrites: doc.metadata.hasPendingWrites,
+            } as any,
+            dateParser.current
+          )
           // update individual docs in the cache
           mutateStatic(`${path}/${doc.id}`, docToAdd, false)
           if (

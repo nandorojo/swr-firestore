@@ -1,14 +1,26 @@
 import useSWR, { mutate, ConfigInterface } from 'swr'
+import { SetOptions } from '@firebase/firestore-types'
 import { fuego } from '../context'
 import { useRef, useEffect, useCallback } from 'react'
 import { empty } from '../helpers/empty'
 import { Document } from '../types/Document'
-import { SetOptions } from '@firebase/firestore-types'
 import { collectionCache } from '../classes/Cache'
 import { isDev } from '../helpers/is-dev'
+import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
 
 type Options<Doc extends Document = Document> = {
   listen?: boolean
+  /**
+   * An array of key strings that indicate where there will be dates in the document.
+   *
+   * Example: if your dates are in the `lastUpdated` and `user.createdAt` fields, then pass `{parseDates: ["lastUpdated", "user.createdAt"]}`.
+   *
+   * This will automatically turn all Firestore dates into JS Date objects, removing the need to do `.toDate()` on your dates.
+   */
+  parseDates?: (
+    | string
+    | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites'>
+  )[]
 } & ConfigInterface<Doc | null>
 
 type ListenerReturnType<Doc extends Document = Document> = {
@@ -17,17 +29,24 @@ type ListenerReturnType<Doc extends Document = Document> = {
 }
 
 const createListenerAsync = async <Doc extends Document = Document>(
-  path: string
+  path: string,
+  parseDates?: (
+    | string
+    | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites'>
+  )[]
 ): Promise<ListenerReturnType<Doc>> => {
   return await new Promise(resolve => {
     const unsubscribe = fuego.db.doc(path).onSnapshot(doc => {
       const docData = doc.data() ?? empty.object
-      const data = {
-        ...docData,
-        id: doc.id,
-        exists: doc.exists,
-        hasPendingWrites: doc.metadata.hasPendingWrites,
-      } as any
+      const data = withDocumentDatesParsed<Doc>(
+        ({
+          ...docData,
+          id: doc.id,
+          exists: doc.exists,
+          hasPendingWrites: doc.metadata.hasPendingWrites,
+        } as unknown) as Doc,
+        parseDates
+      )
       mutate(path, data, false)
       if (
         isDev &&
@@ -42,7 +61,9 @@ const createListenerAsync = async <Doc extends Document = Document>(
       }
 
       // update the document in any collections listening to the same document
-      let collection: string | string[] = path.split(`/${doc.id}`)
+      let collection: string | string[] = path
+        .split(`/${doc.id}`)
+        .filter(Boolean)
       collection.pop() // remove last item, which is the /id
       collection = collection.join('/')
 
@@ -54,7 +75,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
               key,
               (currentState: Doc[] = empty.array): Doc[] => {
                 // don't mutate the current state if it doesn't include this doc
-                if (!currentState.some(doc => doc.id === data.id)) {
+                if (!currentState.some(doc => doc.id && doc.id === data.id)) {
                   return currentState
                 }
                 return currentState.map(document => {
@@ -86,7 +107,7 @@ export const useDocument = <
   options: Options<Doc> = empty.object
 ) => {
   const unsubscribeRef = useRef<ListenerReturnType['unsubscribe'] | null>(null)
-  const { listen = false, ...swrOptions } = options
+  const { listen = false, parseDates, ...swrOptions } = options
 
   // we move listen to a Ref
   // why? because we shouldn't have to include "listen" in the key
@@ -95,7 +116,12 @@ export const useDocument = <
   const shouldListen = useRef(listen)
   useEffect(() => {
     shouldListen.current = listen
-  })
+  }, [listen])
+
+  const datesToParse = useRef(parseDates)
+  useEffect(() => {
+    datesToParse.current = parseDates
+  }, [parseDates])
 
   const swr = useSWR<Doc | null>(
     path,
@@ -106,12 +132,13 @@ export const useDocument = <
           unsubscribeRef.current = null
         }
         const { unsubscribe, initialData } = await createListenerAsync<Doc>(
-          path
+          path,
+          datesToParse.current
         )
         unsubscribeRef.current = unsubscribe
         return initialData
       }
-      const data = (await fuego.db
+      const data = await fuego.db
         .doc(path)
         .get()
         .then(doc => {
@@ -127,13 +154,16 @@ export const useDocument = <
               ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
             )
           }
-          return {
-            ...docData,
-            id: doc.id,
-            exists: doc.exists,
-            hasPendingWrites: doc.metadata.hasPendingWrites,
-          }
-        })) as Doc
+          return withDocumentDatesParsed(
+            ({
+              ...docData,
+              id: doc.id,
+              exists: doc.exists,
+              hasPendingWrites: doc.metadata.hasPendingWrites,
+            } as unknown) as Doc,
+            datesToParse.current
+          )
+        })
 
       // update the document in any collections listening to the same document
       let collection: string | string[] = path.split(`/${data.id}`)
