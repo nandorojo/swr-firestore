@@ -7,8 +7,14 @@ import { Document } from '../types/Document'
 import { collectionCache } from '../classes/Cache'
 import { isDev } from '../helpers/is-dev'
 import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
+import { deleteDocument } from './static-mutations'
 
 type Options<Doc extends Document = Document> = {
+  /**
+   * If `true`, sets up a real-time subscription to the Firestore backend.
+   *
+   * Default: `false`
+   */
   listen?: boolean
   /**
    * An array of key strings that indicate where there will be dates in the document.
@@ -282,6 +288,18 @@ export const useDocument = <
     [listen, path, connectedMutate]
   )
 
+  const connectedDelete = useCallback(
+    (
+      /**
+       * If true, the local cache won't be updated. Default `false`.
+       */
+      ignoreLocalMutations?: Parameters<typeof deleteDocument>[1]
+    ) => {
+      return deleteDocument(path, ignoreLocalMutations)
+    },
+    [path]
+  )
+
   return {
     data,
     isValidating,
@@ -291,6 +309,7 @@ export const useDocument = <
     set,
     update,
     loading: !data && !error,
+    deleteDocument: connectedDelete,
   }
 }
 

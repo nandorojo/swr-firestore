@@ -198,7 +198,19 @@ export const useCollection = <
 >(
   path: string | null,
   query: Ref<Data> & {
+    /**
+     * If `true`, sets up a real-time subscription to the Firestore backend.
+     *
+     * Default: `false`
+     */
     listen?: boolean
+    /**
+     * An array of key strings that indicate where there will be dates in the document.
+     *
+     * Example: if your dates are in the `lastUpdated` and `user.createdAt` fields, then pass `{parseDates: ["lastUpdated", "user.createdAt"]}`.
+     *
+     * This will automatically turn all Firestore dates into JS Date objects, removing the need to do `.toDate()` on your dates.
+     */
     parseDates?: (string | keyof Doc)[]
   } = empty.object,
   options: Options<Doc> = empty.object
