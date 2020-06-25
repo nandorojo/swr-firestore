@@ -37,6 +37,7 @@ You can now fetch, add, and mutate Firestore data with zero boilerplate.
 - Prevent memory leaks from Firestore subscriptions
 - No more parsing `document.data()` from Firestore requests
 - Server-side rendering (SSR or SSG) with Next.js [(example)](https://github.com/nandorojo/swr-firestore/issues/17)
+- Automatic date parsing (no more `.toDate()`)
 
 ...along with the features touted by Vercel's incredible [SWR](https://github.com/zeit/swr#introduction) library:
 
