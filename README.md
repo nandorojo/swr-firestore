@@ -4,6 +4,18 @@
 const { data } = useDocument('users/fernando')
 ```
 
+```js
+const { data: songs } = useCollection('songs', {
+  listen: true,
+  limit: 30,
+  where: [
+    ['artist', '==', 'Drake'],
+    ['yearReleased', '>=', '2017']
+  ],
+  orderBy: ['playCount', 'desc']
+})
+```
+
 **It's that easy.**
 
 🔥 This library provides the hooks you need for querying Firestore, that you can actually use in production, on every screen.
@@ -24,6 +36,8 @@ You can now fetch, add, and mutate Firestore data with zero boilerplate.
 - Realtime subscriptions [(example)](#simple-examples)
 - Prevent memory leaks from Firestore subscriptions
 - No more parsing `document.data()` from Firestore requests
+- Server-side rendering (SSR or SSG) with Next.js [(example)](https://github.com/nandorojo/swr-firestore/issues/17)
+- Automatic date parsing (no more `.toDate()`)
 
 ...along with the features touted by Vercel's incredible [SWR](https://github.com/zeit/swr#introduction) library:
 
