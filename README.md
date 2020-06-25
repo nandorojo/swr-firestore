@@ -45,7 +45,6 @@ _"With SWR, components will get a stream of data updates constantly and automati
 
 Besides maintaining this project, I'm currently working on [**Doorman**](https://doorman.cool) – Firebase phone authentication for React Native apps. It comes with fully-baked & customizable UI components, stateful auth hooks, and more.
 
-
 Even if you don't sign up for Doorman, the library (`react-doorman` or `react-native-doorman`) is free, and has many useful hooks for Firebase auth.
 
 - [Doorman Documentation](https://docs.doorman.cool)
@@ -62,6 +61,7 @@ npm install @nandorojo/swr-firestore
 ```
 
 Install firebase:
+
 ```sh
 # if you're using expo:
 expo install firebase
@@ -93,9 +93,7 @@ const firebaseConfig = {
 const fuego = new Fuego(firebaseConfig)
 
 export default function App() {
-  return (
-    <FuegoProvider fuego={fuego}>{/* Your app code here! */}</FuegoProvider>
-  )
+  return <FuegoProvider fuego={fuego}>{/* Your app code here! */}</FuegoProvider>
 }
 ```
 
@@ -120,7 +118,7 @@ export default function User() {
 
   if (error) return <Text>Error!</Text>
   if (!data) return <Text>Loading...</Text>
-  
+
   return <Text>Name: {user.name}</Text>
 }
 ```
@@ -137,8 +135,8 @@ export default function UserList() {
 
   if (error) return <Text>Error!</Text>
   if (!data) return <Text>Loading...</Text>
-  
-  return data.map(user => <Text key={user.id}>{user.name}</Text>)
+
+  return data.map((user) => <Text key={user.id}>{user.name}</Text>)
 }
 ```
 
@@ -165,7 +163,7 @@ const { data } = useCollection('users', {
   where: ['name', '==', 'fernando'],
   limit: 10,
   orderBy: ['age', 'desc'],
-  listen: true,
+  listen: true
 })
 ```
 
@@ -176,7 +174,7 @@ const { data } = useCollection('users', {
 const { data } = useDocument('albums/nothing-was-the-same', {
   shouldRetryOnError: false,
   onSuccess: console.log,
-  loadingTimeout: 2000,
+  loadingTimeout: 2000
 })
 ```
 
@@ -189,15 +187,12 @@ const { data } = useCollection(
   {
     listen: true,
     // you can pass multiple where conditions if you want
-    where: [
-      ['artist', '==', 'Drake'],
-      ['year', '==', '2020'],
-    ],
+    where: [['artist', '==', 'Drake'], ['year', '==', '2020']]
   },
   {
     shouldRetryOnError: false,
     onSuccess: console.log,
-    loadingTimeout: 2000,
+    loadingTimeout: 2000
   }
 )
 ```
@@ -206,7 +201,7 @@ const { data } = useCollection(
 
 ```typescript
 const { data, add } = useCollection('albums', {
-  where: ['artist', '==', 'Drake'],
+  where: ['artist', '==', 'Drake']
 })
 
 const onPress = () => {
@@ -214,7 +209,7 @@ const onPress = () => {
   add({
     title: 'Dark Lane Demo Tapes',
     artist: 'Drake',
-    year: '2020',
+    year: '2020'
   })
 }
 ```
@@ -228,19 +223,20 @@ const onReleaseAlbum = () => {
   // calling this will automatically update your global cache & Firestore
   set(
     {
-      released: true,
+      released: true
     },
     { merge: true }
   )
 
   // or you could call this:
   update({
-    released: true,
+    released: true
   })
 }
 ```
 
-### Use dynamic fields in a request: 
+### Use dynamic fields in a request:
+
 If you pass `null` as the collection or document key, the request won't send.
 
 Once the key is set to a string, the request will send.
@@ -267,7 +263,58 @@ const { data: user } = useDocument<{ favoriteSong: string }>(`users/${me.id}`)
 const { data: song } = useDocument(user?.favoriteSong ? `songs/${user.favoriteSong}` : null)
 ```
 
-### Paginate a collection: 
+### Parse date fields in your documents
+
+Magically turn any Firestore timestamps into JS date objects! No more `.toDate()`.
+
+Imagine your `user` document schema looks like this:
+
+```typescript
+type User = {
+  name: string
+  lastUpdated: {
+    date: Date
+  }
+  createdAt: Date
+}
+```
+
+In order to turn `createdAt` and `lastUpdated.date` into JS objects, just use the `parseDates` field:
+
+**In a document query**
+
+```typescript
+const { data } = useDocument<User>('user/fernando', {
+  parseDates: ['createdAt', 'lastUpdated.date']
+})
+
+let createdAt: Date
+if (data) {
+  // ✅ all good! it's a JS Date now.
+  createdAt = data.createdAt
+}
+```
+
+`data.createdAt` and `data.lastUpdated.date` are both JS dates now!
+
+**In a collection query**
+
+```typescript
+const { data } = useCollection<User>('user', {
+  parseDates: ['createdAt', 'lastUpdated.date']
+})
+
+if (data) {
+  data.forEach(document => {
+    document.createdAt // JS date!
+  })
+}
+
+```
+
+For more explanation on the dates, see [issue #4](https://github.com/nandorojo/swr-firestore/issues/4).
+
+### Paginate a collection:
 
 Video [here](https://imgur.com/a/o9AlI4N).
 
@@ -365,20 +412,17 @@ import {
   revalidateDocument,
   revalidateCollection,
   // these all update BOTH Firestore & the local cache ⚡️
-  set,    // set a firestore document
+  set, // set a firestore document
   update, // update a firestore document
-  add,    // add a firestore document to a collection
-  fuego   // get the firebase instance used by this lib
+  add, // add a firestore document to a collection
+  fuego // get the firebase instance used by this lib
 } from '@nandorojo/swr-firestore'
 ```
 
 ## `useDocument(path, options)`
 
 ```js
-const { data, set, update, error, isValidating, mutate } = useDocument(
-  path,
-  options
-)
+const { data, set, update, error, isValidating, mutate } = useDocument(path, options)
 ```
 
 ### Arguments
@@ -411,11 +455,7 @@ The dictionary also includes the following [from `useSWR`](https://github.com/ze
 ## `useCollection(path, query, options)`
 
 ```js
-const { data, add, error, isValidating, mutate } = useCollection(
-  path,
-  query,
-  options
-)
+const { data, add, error, isValidating, mutate } = useCollection(path, query, options)
 ```
 
 ### Arguments
@@ -453,20 +493,17 @@ Each array follows this outline: `['key', 'comparison-operator', 'value']`. This
 ```js
 // get all users whoses name are Fernando
 useCollection('users', {
-  where: ['name', '==', 'Fernando'],
+  where: ['name', '==', 'Fernando']
 })
 
 // get all users whose names are Fernando & who are hungry
 useCollection('users', {
-  where: [
-    ['name', '==', 'Fernando'],
-    ['isHungry', '==', true],
-  ],
+  where: [['name', '==', 'Fernando'], ['isHungry', '==', true]]
 })
 
 // get all users whose friends array contains Fernando
 useCollection('users', {
-  where: ['friends', 'array-contains', 'Fernando'],
+  where: ['friends', 'array-contains', 'Fernando']
 })
 ```
 
@@ -479,20 +516,20 @@ Each array follows this outline: `['key', 'desc' | 'asc']`. This is pulled direc
 ```js
 // get users, ordered by name
 useCollection('users', {
-  orderBy: 'name',
+  orderBy: 'name'
 })
 
 // get users, ordered by name in descending order
 useCollection('users', {
-  orderBy: ['name', 'desc'],
+  orderBy: ['name', 'desc']
 })
 
 // get users, ordered by name in descending order & hunger in ascending order
 useCollection('users', {
   orderBy: [
     ['name', 'desc'], //
-    ['isHungry', 'asc'],
-  ],
+    ['isHungry', 'asc']
+  ]
 })
 ```
 
@@ -517,32 +554,33 @@ The returned dictionary also includes the following [from `useSWR`](https://gith
 ## `set(path, data, SetOptions?)`
 
 Extends the `firestore` document `set` function.
-  - You can call this when you want to edit your document.
-  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular Firestore `set` function.
-  - The second argument is the same as the second argument for [Firestore `set`](https://firebase.google.com/docs/firestore/manage-data/add-data#set_a_document).
+
+- You can call this when you want to edit your document.
+- It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular Firestore `set` function.
+- The second argument is the same as the second argument for [Firestore `set`](https://firebase.google.com/docs/firestore/manage-data/add-data#set_a_document).
 
 This is useful if you want to `set` a document in a component that isn't connected to the `useDocument` hook.
 
-## `update(path, data)`: 
+## `update(path, data)`:
 
 Extends the Firestore document [`update` function](https://firebase.google.com/docs/firestore/manage-data/add-data#update-data).
-  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `set` function.
-  
+
+- It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `set` function.
+
 This is useful if you want to `update` a document in a component that isn't connected to the `useDocument` hook.
 
-
-## `add(path, data)`: 
+## `add(path, data)`:
 
 Extends the Firestore document [`add` function](https://firebase.google.com/docs/firestore/manage-data/add-data).
-  - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `add` function.
-  - Use this **instead** of `firebase.firestore().collection('users').add(data)`
-  
+
+- It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `add` function.
+- Use this **instead** of `firebase.firestore().collection('users').add(data)`
+
 ## `revalidateDocument(path)`
 
 Refetch a document from Firestore, and update the local cache. Useful if you want to update a given document without calling the connected `revalidate` function from use `useDocument` hook.
 
 - Only argument is the Firestore document path (ex: `users/Fernando`)
-
 
 ## `revalidateCollection(path)`
 
@@ -554,8 +592,9 @@ Refetch a collection query from Firestore, and update the local cache. Useful if
 ## `fuego`
 
 The current firebase instance used by this library. Exports the following fields:
-  - `db`: the current firestore collection instance
-  - `auth`: the `firebase.auth` variable.
+
+- `db`: the current firestore collection instance
+- `auth`: the `firebase.auth` variable.
 
 ```js
 import { fuego } from '@nandorojo/swr-firestore'
