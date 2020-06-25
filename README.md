@@ -436,7 +436,7 @@ import {
 ## `useDocument(path, options)`
 
 ```js
-const { data, set, update, error, isValidating, mutate } = useDocument(path, options)
+const { data, set, update, deleteDocument, error, isValidating, mutate } = useDocument(path, options)
 ```
 
 ### Arguments
@@ -458,6 +458,8 @@ Returns a dictionary with the following values:
   - The second argument is the same as the second argument for [Firestore `set`](https://firebase.google.com/docs/firestore/manage-data/add-data#set_a_document).
 - `update(data)`: Extends the Firestore document [`update` function](https://firebase.google.com/docs/firestore/manage-data/add-data#update-data).
   - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `set` function.
+- `deleteDocument()`: Extends the Firestore document [`delete` function](https://firebase.google.com/docs/firestore/manage-data/delete-data).
+  - It also updates the local cache using SWR's `mutate` by deleting your document from this query and all collection queries that have fetched this document. This will prove highly convenient over the regular `delete` function from Firestore.
 
 The dictionary also includes the following [from `useSWR`](https://github.com/zeit/swr#return-values):
 
@@ -589,6 +591,12 @@ Extends the Firestore document [`add` function](https://firebase.google.com/docs
 
 - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `add` function.
 - Use this **instead** of `firebase.firestore().collection('users').add(data)`
+
+## `deleteDocument(path, ignoreLocalMutations = false)`
+
+Extends the Firestore document [`delete` function](https://firebase.google.com/docs/firestore/manage-data/delete-data).
+  - It also updates the local cache using SWR's `mutate` by deleting your document from this query and all collection queries that have fetched this document. This will prove highly convenient over the regular `delete` function from Firestore.  
+  - Second argument is a boolean that defaults to false. If `true`, it will not update the local cache, and instead only send delete to Firestore.
 
 ## `revalidateDocument(path)`
 
