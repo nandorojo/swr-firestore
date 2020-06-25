@@ -282,6 +282,28 @@ export const useDocument = <
     [listen, path, connectedMutate]
   )
 
+  /**
+   * - `delete(data)`: Extends the Firestore document [`delete` function](https://firebase.google.com/docs/firestore/manage-data/delete-data).
+   * - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `delete` function.
+   */
+  const delet = useCallback(
+    (data: Partial<Data>) => {
+      if (!listen) {
+        // we only update the local cache if we don't have a listener set up
+        // @ts-ignore
+        connectedMutate((prevState = empty.object) => {
+          return {
+            ...prevState,
+            ...data,
+          }
+        })
+      }
+      if (!path) return null
+      return fuego.db.doc(path).delete()
+    },
+    [listen, path, connectedMutate]
+  )
+
   return {
     data,
     isValidating,
@@ -290,6 +312,7 @@ export const useDocument = <
     error,
     set,
     update,
+    delet,
     loading: !data && !error,
   }
 }
