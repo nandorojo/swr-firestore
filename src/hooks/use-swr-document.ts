@@ -288,17 +288,9 @@ export const useDocument = <
     [listen, path, connectedMutate]
   )
 
-  const connectedDelete = useCallback(
-    (
-      /**
-       * If true, the local cache won't be updated. Default `false`.
-       */
-      ignoreLocalMutations?: Parameters<typeof deleteDocument>[1]
-    ) => {
-      return deleteDocument(path, ignoreLocalMutations)
-    },
-    [path]
-  )
+  const connectedDelete = useCallback(() => {
+    return deleteDocument(path, listen)
+  }, [path, listen])
 
   return {
     data,
