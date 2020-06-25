@@ -4,6 +4,18 @@
 const { data } = useDocument('users/fernando')
 ```
 
+```js
+const { data: songs } = useCollection('songs', {
+  listen: true,
+  limit: 30,
+  where: [
+    ['artist', '==', 'Drake'],
+    ['yearReleased', '>=', '2017']
+  ],
+  orderBy: ['playCount', 'desc']
+})
+```
+
 **It's that easy.**
 
 🔥 This library provides the hooks you need for querying Firestore, that you can actually use in production, on every screen.
