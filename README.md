@@ -1,10 +1,12 @@
 # SWR + Firestore
 
 ```js
+// Get a document
 const { data } = useDocument('users/fernando')
 ```
 
 ```js
+// Subscribe to a collection
 const { data: songs } = useCollection('songs', {
   listen: true,
   limit: 30,
