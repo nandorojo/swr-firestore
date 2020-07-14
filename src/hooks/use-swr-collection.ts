@@ -216,7 +216,6 @@ export const useCollection = <
   options: Options<Doc> = empty.object
 ) => {
   const unsubscribeRef = useRef<ListenerReturnType['unsubscribe'] | null>(null)
-  const { ...swrOptions } = options
 
   const {
     where,
@@ -229,6 +228,24 @@ export const useCollection = <
     listen = false,
     parseDates,
   } = query
+
+  // if we're listening, the firestore listener handles all revalidation
+  const {
+    refreshInterval = listen ? 0 : undefined,
+    refreshWhenHidden = listen ? false : undefined,
+    refreshWhenOffline = listen ? false : undefined,
+    revalidateOnFocus = listen ? false : undefined,
+    revalidateOnReconnect = listen ? false : undefined,
+  } = options
+
+  const swrOptions = {
+    ...options,
+    refreshInterval,
+    refreshWhenHidden,
+    refreshWhenOffline,
+    revalidateOnFocus,
+    revalidateOnReconnect,
+  }
 
   // why not just put this into the ref directly?
   // so that we can use the useEffect down below that triggers revalidate()

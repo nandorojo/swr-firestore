@@ -113,7 +113,25 @@ export const useDocument = <
   options: Options<Doc> = empty.object
 ) => {
   const unsubscribeRef = useRef<ListenerReturnType['unsubscribe'] | null>(null)
-  const { listen = false, parseDates, ...swrOptions } = options
+  const { listen = false, parseDates, ...opts } = options
+
+  // if we're listening, the firestore listener handles all revalidation
+  const {
+    refreshInterval = listen ? 0 : undefined,
+    refreshWhenHidden = listen ? false : undefined,
+    refreshWhenOffline = listen ? false : undefined,
+    revalidateOnFocus = listen ? false : undefined,
+    revalidateOnReconnect = listen ? false : undefined,
+  } = options
+
+  const swrOptions = {
+    ...opts,
+    refreshInterval,
+    refreshWhenHidden,
+    refreshWhenOffline,
+    revalidateOnFocus,
+    revalidateOnReconnect,
+  }
 
   // we move listen to a Ref
   // why? because we shouldn't have to include "listen" in the key
