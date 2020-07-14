@@ -1,21 +1,7 @@
 # SWR + Firestore
 
 ```js
-// Get a document
 const { data } = useDocument('users/fernando')
-```
-
-```js
-// Subscribe to a collection
-const { data: songs } = useCollection('songs', {
-  listen: true,
-  limit: 30,
-  where: [
-    ['artist', '==', 'Drake'],
-    ['yearReleased', '>=', '2017']
-  ],
-  orderBy: ['playCount', 'desc']
-})
 ```
 
 **It's that easy.**
@@ -32,6 +18,7 @@ You can now fetch, add, and mutate Firestore data with zero boilerplate.
 
 - Shared state / cache between collection and document queries [(instead of Redux??)](#shared-global-state-between-documents-and-collections)
 - Works with both **React** and **React Native**.
+- Offline mode with Expo [(without detaching!)](https://github.com/nandorojo/expo-firestore-offline-persistence/blob/master/README.md#usage-with-nandorojoswr-firestore)
 - Blazing fast
 - `set`, `update`, and `add` update your global cache, instantly
 - TypeScript-ready [(see docs)](#typescript-support)
