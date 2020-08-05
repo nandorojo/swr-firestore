@@ -1,4 +1,5 @@
-import { set, get } from 'lodash'
+import get from 'lodash.get'
+import set from 'lodash.set'
 
 export function withDocumentDatesParsed<Data extends object>(
   data: Data,
