@@ -75,9 +75,14 @@ type Ref<Doc extends object = {}> = {
 
 const createRef = <Doc extends object = {}>(
   path: string,
-  { where, orderBy, limit, startAt, endAt, startAfter, endBefore }: Ref<Doc>
+  { where, orderBy, limit, startAt, endAt, startAfter, endBefore }: Ref<Doc>,
+  { isCollectionGroup = false }: { isCollectionGroup?: boolean } = empty.object
 ) => {
   let ref: Query = fuego.db.collection(path)
+
+  if (isCollectionGroup) {
+    ref = fuego.db.collectionGroup(path)
+  }
 
   if (where) {
     function multipleConditions(w: WhereType<Doc>): w is WhereArray<Doc> {
@@ -134,11 +139,14 @@ type ListenerReturnType<Doc extends Document = Document> = {
 const createListenerAsync = async <Doc extends Document = Document>(
   path: string,
   queryString: string,
-  parseDates?: (string | keyof Doc)[]
+  {
+    parseDates,
+    isCollectionGroup = false,
+  }: { parseDates?: (string | keyof Doc)[]; isCollectionGroup?: boolean }
 ): Promise<ListenerReturnType<Doc>> => {
   return new Promise(resolve => {
     const query: Ref = JSON.parse(queryString) ?? {}
-    const ref = createRef(path, query)
+    const ref = createRef(path, query, { isCollectionGroup })
     const unsubscribe = ref.onSnapshot(
       { includeMetadataChanges: true },
       querySnapshot => {
@@ -212,6 +220,10 @@ export const useCollection = <
      * This will automatically turn all Firestore dates into JS Date objects, removing the need to do `.toDate()` on your dates.
      */
     parseDates?: (string | keyof Doc)[]
+    /**
+     * Use the `useCollectionGroup` hook instead of this.
+     */
+    __unstableCollectionGroup?: boolean
   } = empty.object,
   options: Options<Doc> = empty.object
 ) => {
@@ -227,6 +239,7 @@ export const useCollection = <
     limit,
     listen = false,
     parseDates,
+    __unstableCollectionGroup: isCollectionGroup = false,
   } = query
 
   // if we're listening, the firestore listener handles all revalidation
@@ -263,6 +276,16 @@ export const useCollection = <
     [endAt, endBefore, limit, orderBy, startAfter, startAt, where]
   )
 
+  // we move this to a Ref
+  // why? because we shouldn't have to include it in the key
+  // if we do, then calling mutate() won't be consistent for all
+  // collections with the same path & query
+  // TODO figure out if this is the right behavior...probably not because of the paths. hm.
+  const isCollectionGroupQuery = useRef(isCollectionGroup)
+  useEffect(() => {
+    isCollectionGroupQuery.current = isCollectionGroup
+  }, [isCollectionGroup])
+
   const dateParser = useRef(parseDates)
   useEffect(() => {
     dateParser.current = parseDates
@@ -289,7 +312,7 @@ export const useCollection = <
         const { unsubscribe, initialData } = await createListenerAsync<Doc>(
           path,
           queryString,
-          dateParser.current
+          { parseDates: dateParser.current }
         )
         unsubscribeRef.current = unsubscribe
         return initialData
