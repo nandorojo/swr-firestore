@@ -39,7 +39,8 @@
     "@react-native-community/eslint-config": "^0.0.7",
     "@release-it/conventional-changelog": "^1.1.0",
     "@types/jest": "^25.1.2",
-    "@types/lodash": "^4.14.155",
+    "@types/lodash.get": "^4.4.6",
+    "@types/lodash.set": "^4.3.6",
     "@types/react": "^16.9.19",
     "@types/react-native": "0.61.10",
     "commitlint": "^8.3.4",
@@ -103,7 +104,8 @@
   },
   "dependencies": {
     "@expo/results": "^1.0.0",
-    "lodash": "^4.17.15",
+    "lodash.get": "^4.4.2",
+    "lodash.set": "^4.3.2",
     "swr": "^0.2.0"
   }
 }
