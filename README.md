@@ -417,7 +417,6 @@ import {
   // these all update BOTH Firestore & the local cache ⚡️
   set, // set a firestore document
   update, // update a firestore document
-  add, // add a firestore document to a collection
   fuego // get the firebase instance used by this lib
 } from '@nandorojo/swr-firestore'
 ```
@@ -574,12 +573,14 @@ Extends the Firestore document [`update` function](https://firebase.google.com/d
 
 This is useful if you want to `update` a document in a component that isn't connected to the `useDocument` hook.
 
+<!--
 ## `add(path, data)`:
 
 Extends the Firestore document [`add` function](https://firebase.google.com/docs/firestore/manage-data/add-data).
 
 - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `add` function.
 - Use this **instead** of `firebase.firestore().collection('users').add(data)`
+-->
 
 ## `deleteDocument(path, ignoreLocalMutations = false)`
 
