@@ -81,10 +81,10 @@ const createRef = <Doc extends object = {}>(
   { where, orderBy, limit, startAt, endAt, startAfter, endBefore }: Ref<Doc>,
   {
     isCollectionGroup = false,
-    converter,
+    documentDataConverter,
   }: {
     isCollectionGroup?: boolean
-    converter?: ConverterType
+    documentDataConverter?: ConverterType<Doc>
   } = empty.object
 ) => {
   let ref: Query = fuego.db.collection(path)
@@ -137,8 +137,8 @@ const createRef = <Doc extends object = {}>(
   if (limit) {
     ref = ref.limit(limit)
   }
-  if (converter) {
-    ref = ref.withConverter(converter)
+  if (documentDataConverter) {
+    ref = ref.withConverter(documentDataConverter)
   }
   return ref
 }
@@ -153,17 +153,20 @@ const createListenerAsync = async <Doc extends Document = Document>(
   queryString: string,
   {
     parseDates,
-    converter,
+    documentDataConverter,
     isCollectionGroup = false,
   }: {
     parseDates?: (string | keyof Doc)[]
-    converter?: ConverterType
+    documentDataConverter?: ConverterType<Doc>
     isCollectionGroup?: boolean
   }
 ): Promise<ListenerReturnType<Doc>> => {
   return new Promise(resolve => {
     const query: Ref = JSON.parse(queryString) ?? {}
-    const ref = createRef(path, query, { converter, isCollectionGroup })
+    const ref = createRef(path, query, {
+      documentDataConverter,
+      isCollectionGroup,
+    })
     const unsubscribe = ref.onSnapshot(
       { includeMetadataChanges: true },
       querySnapshot => {
@@ -229,7 +232,7 @@ export const useCollection = <
      * Default: `false`
      */
     listen?: boolean
-    converter?: ConverterType
+    documentDataConverter?: ConverterType<Doc>
     /**
      * An array of key strings that indicate where there will be dates in the document.
      *
@@ -256,7 +259,7 @@ export const useCollection = <
     orderBy,
     limit,
     listen = false,
-    converter,
+    documentDataConverter,
     parseDates,
     __unstableCollectionGroup: isCollectionGroup = false,
   } = query
@@ -310,6 +313,11 @@ export const useCollection = <
     dateParser.current = parseDates
   }, [parseDates])
 
+  const documentConverter = useRef(documentDataConverter)
+  useEffect(() => {
+    documentConverter.current = documentDataConverter
+  }, [documentDataConverter])
+
   // we move listen to a Ref
   // why? because we shouldn't have to include "listen" in the key
   // if we do, then calling mutate() won't be consistent for all
@@ -331,14 +339,17 @@ export const useCollection = <
         const { unsubscribe, initialData } = await createListenerAsync<Doc>(
           path,
           queryString,
-          { parseDates: dateParser.current, converter }
+          {
+            parseDates: dateParser.current,
+            documentDataConverter: documentConverter.current,
+          }
         )
         unsubscribeRef.current = unsubscribe
         return initialData
       }
 
       const query: Ref = JSON.parse(queryString) ?? {}
-      const ref = createRef(path, query, { converter })
+      const ref = createRef(path, query, { documentDataConverter })
       const data: Doc[] = await ref.get().then(querySnapshot => {
         const array: typeof data = []
         querySnapshot.forEach(doc => {
@@ -452,8 +463,8 @@ export const useCollection = <
       docsToAdd.forEach(({ id, ...doc }) => {
         // take the ID out of the document
         let docRef = ref.doc(id)
-        if (converter) {
-          docRef = docRef.withConverter(converter)
+        if (documentDataConverter) {
+          docRef = docRef.withConverter(documentDataConverter)
         }
         batch.set(docRef, doc)
       })

@@ -29,7 +29,7 @@ type Options<Doc extends Document = Document> = {
     | string
     | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites'>
   )[]
-  converter?: ConverterType
+  documentDataConverter?: ConverterType<Doc>
 } & ConfigInterface<Doc | null>
 
 type ListenerReturnType<Doc extends Document = Document> = {
@@ -43,12 +43,12 @@ const createListenerAsync = async <Doc extends Document = Document>(
     | string
     | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites'>
   )[],
-  converter?: ConverterType
+  documentDataConverter?: ConverterType<Doc>
 ): Promise<ListenerReturnType<Doc>> => {
   return await new Promise(resolve => {
     let docRef = fuego.db.doc(path)
-    if (converter) {
-      docRef = docRef.withConverter(converter)
+    if (documentDataConverter) {
+      docRef = docRef.withConverter(documentDataConverter)
     }
     const unsubscribe = docRef.onSnapshot(doc => {
       const docData = doc.data() ?? empty.object
@@ -130,7 +130,7 @@ export const useDocument = <
     refreshWhenOffline = listen ? false : undefined,
     revalidateOnFocus = listen ? false : undefined,
     revalidateOnReconnect = listen ? false : undefined,
-    converter,
+    documentDataConverter,
   } = options
 
   const swrOptions = {
@@ -156,6 +156,11 @@ export const useDocument = <
     datesToParse.current = parseDates
   }, [parseDates])
 
+  const documentConverter = useRef(documentDataConverter)
+  useEffect(() => {
+    documentConverter.current = documentDataConverter
+  }, [documentDataConverter])
+
   const swr = useSWR<Doc | null>(
     path,
     async (path: string) => {
@@ -166,14 +171,15 @@ export const useDocument = <
         }
         const { unsubscribe, initialData } = await createListenerAsync<Doc>(
           path,
-          datesToParse.current
+          datesToParse.current,
+          documentConverter.current
         )
         unsubscribeRef.current = unsubscribe
         return initialData
       }
       let docRef = fuego.db.doc(path)
-      if (converter) {
-        docRef = docRef.withConverter(converter)
+      if (documentDataConverter) {
+        docRef = docRef.withConverter(documentDataConverter)
       }
       const data = await docRef.get().then(doc => {
         const docData = doc.data() ?? empty.object
@@ -290,7 +296,8 @@ export const useDocument = <
       }
       if (!path) return null
       let docRef = fuego.db.doc(path)
-      if (converter) docRef = docRef.withConverter(converter)
+      if (documentDataConverter)
+        docRef = docRef.withConverter(documentDataConverter)
       return docRef.set(data, options)
     },
     [path, listen, connectedMutate]
@@ -314,7 +321,8 @@ export const useDocument = <
       }
       if (!path) return null
       let docRef = fuego.db.doc(path)
-      if (converter) docRef = docRef.withConverter(converter)
+      if (documentDataConverter)
+        docRef = docRef.withConverter(documentDataConverter)
       return docRef.update(data)
     },
     [listen, path, connectedMutate]
