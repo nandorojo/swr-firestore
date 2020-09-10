@@ -12,6 +12,7 @@ import {
   OrderByDirection,
   WhereFilterOp,
   Query,
+  FirestoreDataConverter,
 } from '@firebase/firestore-types'
 import { isDev } from '../helpers/is-dev'
 import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
@@ -35,6 +36,8 @@ type WhereItem<Doc extends object = {}, Key = keyof Doc> = [
 ]
 type WhereArray<Doc extends object = {}> = WhereItem<Doc>[]
 type WhereType<Doc extends object = {}> = WhereItem<Doc> | WhereArray<Doc>
+
+type ConverterType<Doc extends object = {}> = FirestoreDataConverter<Doc>
 
 type Ref<Doc extends object = {}> = {
   limit?: number
@@ -76,7 +79,13 @@ type Ref<Doc extends object = {}> = {
 const createRef = <Doc extends object = {}>(
   path: string,
   { where, orderBy, limit, startAt, endAt, startAfter, endBefore }: Ref<Doc>,
-  { isCollectionGroup = false }: { isCollectionGroup?: boolean } = empty.object
+  {
+    isCollectionGroup = false,
+    converter,
+  }: {
+    isCollectionGroup?: boolean
+    converter?: ConverterType
+  } = empty.object
 ) => {
   let ref: Query = fuego.db.collection(path)
 
@@ -128,6 +137,9 @@ const createRef = <Doc extends object = {}>(
   if (limit) {
     ref = ref.limit(limit)
   }
+  if (converter) {
+    ref = ref.withConverter(converter)
+  }
   return ref
 }
 
@@ -141,12 +153,17 @@ const createListenerAsync = async <Doc extends Document = Document>(
   queryString: string,
   {
     parseDates,
+    converter,
     isCollectionGroup = false,
-  }: { parseDates?: (string | keyof Doc)[]; isCollectionGroup?: boolean }
+  }: {
+    parseDates?: (string | keyof Doc)[]
+    converter?: ConverterType
+    isCollectionGroup?: boolean
+  }
 ): Promise<ListenerReturnType<Doc>> => {
   return new Promise(resolve => {
     const query: Ref = JSON.parse(queryString) ?? {}
-    const ref = createRef(path, query, { isCollectionGroup })
+    const ref = createRef(path, query, { converter, isCollectionGroup })
     const unsubscribe = ref.onSnapshot(
       { includeMetadataChanges: true },
       querySnapshot => {
@@ -212,6 +229,7 @@ export const useCollection = <
      * Default: `false`
      */
     listen?: boolean
+    converter?: ConverterType
     /**
      * An array of key strings that indicate where there will be dates in the document.
      *
@@ -238,6 +256,7 @@ export const useCollection = <
     orderBy,
     limit,
     listen = false,
+    converter,
     parseDates,
     __unstableCollectionGroup: isCollectionGroup = false,
   } = query
@@ -312,14 +331,14 @@ export const useCollection = <
         const { unsubscribe, initialData } = await createListenerAsync<Doc>(
           path,
           queryString,
-          { parseDates: dateParser.current }
+          { parseDates: dateParser.current, converter }
         )
         unsubscribeRef.current = unsubscribe
         return initialData
       }
 
       const query: Ref = JSON.parse(queryString) ?? {}
-      const ref = createRef(path, query)
+      const ref = createRef(path, query, { converter })
       const data: Doc[] = await ref.get().then(querySnapshot => {
         const array: typeof data = []
         querySnapshot.forEach(doc => {
