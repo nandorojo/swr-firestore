@@ -73,6 +73,58 @@ type Ref<Doc extends object = {}> = {
   // endBefore?: number | DocumentSnapshot
 }
 
+export const getCollection = async <Doc extends Document = Document>(
+  path: string,
+  // queryString: string = '{}',
+  query: Ref<Doc> = {},
+  {
+    parseDates,
+    /**
+     * Experimental. use at your own risk.
+     */
+    __unstableCollectionGroup: isCollectionGroup = false,
+  }: {
+    parseDates?: (string | keyof Doc)[]
+    __unstableCollectionGroup?: boolean
+  } = empty.object
+) => {
+  const ref = createRef(path, query, { isCollectionGroup })
+  const data: Doc[] = await ref.get().then(querySnapshot => {
+    const array: typeof data = []
+    querySnapshot.forEach(doc => {
+      const docData =
+        doc.data({
+          serverTimestamps: 'estimate',
+        }) ?? empty.object
+      const docToAdd = withDocumentDatesParsed(
+        {
+          ...docData,
+          id: doc.id,
+          exists: doc.exists,
+          hasPendingWrites: doc.metadata.hasPendingWrites,
+        } as any,
+        parseDates
+      )
+      // update individual docs in the cache
+      mutateStatic(`${path}/${doc.id}`, docToAdd, false)
+      if (
+        isDev &&
+        // @ts-ignore
+        (docData.exists || docData.id || docData.hasPendingWrites)
+      ) {
+        console.warn(
+          '[get-collection] warning: Your document, ',
+          doc.id,
+          ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
+        )
+      }
+      array.push(docToAdd)
+    })
+    return array
+  })
+  return data
+}
+
 const createRef = <Doc extends object = {}>(
   path: string,
   { where, orderBy, limit, startAt, endAt, startAfter, endBefore }: Ref<Doc>,
@@ -281,6 +333,7 @@ export const useCollection = <
   // if we do, then calling mutate() won't be consistent for all
   // collections with the same path & query
   // TODO figure out if this is the right behavior...probably not because of the paths. hm.
+  // TODO it's not, move this to the memoQueryString
   const isCollectionGroupQuery = useRef(isCollectionGroup)
   useEffect(() => {
     isCollectionGroupQuery.current = isCollectionGroup
@@ -312,48 +365,61 @@ export const useCollection = <
         const { unsubscribe, initialData } = await createListenerAsync<Doc>(
           path,
           queryString,
-          { parseDates: dateParser.current }
+          {
+            parseDates: dateParser.current,
+            isCollectionGroup: isCollectionGroupQuery.current,
+          }
         )
         unsubscribeRef.current = unsubscribe
         return initialData
       }
 
-      const query: Ref = JSON.parse(queryString) ?? {}
-      const ref = createRef(path, query)
-      const data: Doc[] = await ref.get().then(querySnapshot => {
-        const array: typeof data = []
-        querySnapshot.forEach(doc => {
-          const docData =
-            doc.data({
-              serverTimestamps: 'estimate',
-            }) ?? empty.object
-          const docToAdd = withDocumentDatesParsed(
-            {
-              ...docData,
-              id: doc.id,
-              exists: doc.exists,
-              hasPendingWrites: doc.metadata.hasPendingWrites,
-            } as any,
-            dateParser.current
-          )
-          // update individual docs in the cache
-          mutateStatic(`${path}/${doc.id}`, docToAdd, false)
-          if (
-            isDev &&
-            // @ts-ignore
-            (docData.exists || docData.id || docData.hasPendingWrites)
-          ) {
-            console.warn(
-              '[use-document] warning: Your document, ',
-              doc.id,
-              ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
-            )
-          }
-          array.push(docToAdd)
-        })
-        return array
-      })
+      const data = await getCollection<Doc>(
+        path,
+        JSON.parse(queryString) as Ref<Doc>,
+        {
+          __unstableCollectionGroup: isCollectionGroupQuery.current,
+          parseDates: dateParser.current,
+        }
+      )
       return data
+
+      // const query: Ref = JSON.parse(queryString) ?? {}
+      // const ref = createRef(path, query)
+      // const data: Doc[] = await ref.get().then(querySnapshot => {
+      //   const array: typeof data = []
+      //   querySnapshot.forEach(doc => {
+      //     const docData =
+      //       doc.data({
+      //         serverTimestamps: 'estimate',
+      //       }) ?? empty.object
+      //     const docToAdd = withDocumentDatesParsed(
+      //       {
+      //         ...docData,
+      //         id: doc.id,
+      //         exists: doc.exists,
+      //         hasPendingWrites: doc.metadata.hasPendingWrites,
+      //       } as any,
+      //       dateParser.current
+      //     )
+      //     // update individual docs in the cache
+      //     mutateStatic(`${path}/${doc.id}`, docToAdd, false)
+      //     if (
+      //       isDev &&
+      //       // @ts-ignore
+      //       (docData.exists || docData.id || docData.hasPendingWrites)
+      //     ) {
+      //       console.warn(
+      //         '[use-document] warning: Your document, ',
+      //         doc.id,
+      //         ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
+      //       )
+      //     }
+      //     array.push(docToAdd)
+      //   })
+      //   return array
+      // })
+      // return data
     },
     swrOptions
   )

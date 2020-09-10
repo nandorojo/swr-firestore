@@ -34,6 +34,76 @@ type ListenerReturnType<Doc extends Document = Document> = {
   unsubscribe: ReturnType<ReturnType<typeof fuego['db']['doc']>['onSnapshot']>
 }
 
+export const getDocument = async <Doc extends Document = Document>(
+  path: string,
+  {
+    parseDates,
+  }: {
+    parseDates?: (
+      | string
+      | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites'>
+    )[]
+  } = empty.object
+) => {
+  const data = await fuego.db
+    .doc(path)
+    .get()
+    .then(doc => {
+      const docData =
+        doc.data({
+          serverTimestamps: 'estimate',
+        }) ?? empty.object
+      if (
+        isDev &&
+        // @ts-ignore
+        (docData.exists || docData.id || docData.hasPendingWrites)
+      ) {
+        console.warn(
+          '[get-document] warning: Your document, ',
+          doc.id,
+          ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
+        )
+      }
+      return withDocumentDatesParsed(
+        ({
+          ...docData,
+          id: doc.id,
+          exists: doc.exists,
+          hasPendingWrites: doc.metadata.hasPendingWrites,
+        } as unknown) as Doc,
+        parseDates
+      )
+    })
+
+  // update the document in any collections listening to the same document
+  let collection: string | string[] = path.split(`/${data.id}`)
+
+  collection.pop() // remove last item, which is the /id
+  collection = collection.join('/') // rejoin the path
+  if (collection) {
+    collectionCache.getSWRKeysFromCollectionPath(collection).forEach(key => {
+      mutate(
+        key,
+        (currentState: Doc[] = empty.array): Doc[] => {
+          // don't mutate the current state if it doesn't include this doc
+          if (!currentState.some(doc => doc.id === data.id)) {
+            return currentState
+          }
+          return currentState.map(document => {
+            if (document.id === data.id) {
+              return data
+            }
+            return document
+          })
+        },
+        false
+      )
+    })
+  }
+
+  return data
+}
+
 const createListenerAsync = async <Doc extends Document = Document>(
   path: string,
   parseDates?: (
@@ -162,60 +232,9 @@ export const useDocument = <
         unsubscribeRef.current = unsubscribe
         return initialData
       }
-      const data = await fuego.db
-        .doc(path)
-        .get()
-        .then(doc => {
-          const docData = doc.data() ?? empty.object
-          if (
-            isDev &&
-            // @ts-ignore
-            (docData.exists || docData.id || docData.hasPendingWrites)
-          ) {
-            console.warn(
-              '[use-document] warning: Your document, ',
-              doc.id,
-              ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
-            )
-          }
-          return withDocumentDatesParsed(
-            ({
-              ...docData,
-              id: doc.id,
-              exists: doc.exists,
-              hasPendingWrites: doc.metadata.hasPendingWrites,
-            } as unknown) as Doc,
-            datesToParse.current
-          )
-        })
-
-      // update the document in any collections listening to the same document
-      let collection: string | string[] = path.split(`/${data.id}`)
-      collection.pop() // remove last item, which is the /id
-      collection = collection.join('/') // rejoin the path
-      if (collection) {
-        collectionCache
-          .getSWRKeysFromCollectionPath(collection)
-          .forEach(key => {
-            mutate(
-              key,
-              (currentState: Doc[] = empty.array): Doc[] => {
-                // don't mutate the current state if it doesn't include this doc
-                if (!currentState.some(doc => doc.id === data.id)) {
-                  return currentState
-                }
-                return currentState.map(document => {
-                  if (document.id === data.id) {
-                    return data
-                  }
-                  return document
-                })
-              },
-              false
-            )
-          })
-      }
-
+      const data = await getDocument<Doc>(path, {
+        parseDates: datesToParse.current,
+      })
       return data
     },
     swrOptions
