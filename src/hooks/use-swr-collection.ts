@@ -451,7 +451,11 @@ export const useCollection = <
 
       docsToAdd.forEach(({ id, ...doc }) => {
         // take the ID out of the document
-        batch.set(ref.doc(id), doc)
+        let docRef = ref.doc(id)
+        if (converter) {
+          docRef = docRef.withConverter(converter)
+        }
+        batch.set(docRef, doc)
       })
 
       return batch.commit()
