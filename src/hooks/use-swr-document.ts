@@ -25,8 +25,16 @@ type Options<Doc extends Document = Document> = {
    */
   parseDates?: (
     | string
-    | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites'>
+    | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites' | '__snapshot'>
   )[]
+  /**
+   * If `true`, doc returned in `data` will not include the firestore `__snapshot` field.
+   *
+   * If `false`, it will include a `__snapshot` field. This lets you access the document snapshot, but makes the document not JSON serializable.
+   *
+   * Default: `true`
+   */
+  ignoreFirestoreDocumentSnapshotField?: boolean
 } & ConfigInterface<Doc | null>
 
 type ListenerReturnType<Doc extends Document = Document> = {
@@ -38,11 +46,20 @@ export const getDocument = async <Doc extends Document = Document>(
   path: string,
   {
     parseDates,
+    ignoreFirestoreDocumentSnapshotField = true,
   }: {
     parseDates?: (
       | string
-      | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites'>
+      | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites' | '__snapshot'>
     )[]
+    /**
+     * If `true`, doc returned in `data` will not include the firestore `__snapshot` field.
+     *
+     * If `false`, it will include a `__snapshot` field. This lets you access the document snapshot, but makes the document not JSON serializable.
+     *
+     * Default: `true`
+     */
+    ignoreFirestoreDocumentSnapshotField?: boolean
   } = empty.object
 ) => {
   const data = await fuego.db
@@ -70,6 +87,7 @@ export const getDocument = async <Doc extends Document = Document>(
           id: doc.id,
           exists: doc.exists,
           hasPendingWrites: doc.metadata.hasPendingWrites,
+          __snapshot: ignoreFirestoreDocumentSnapshotField ? undefined : doc,
         } as unknown) as Doc,
         parseDates
       )
@@ -106,10 +124,21 @@ export const getDocument = async <Doc extends Document = Document>(
 
 const createListenerAsync = async <Doc extends Document = Document>(
   path: string,
-  parseDates?: (
-    | string
-    | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites'>
-  )[]
+  {
+    parseDates,
+    ignoreFirestoreDocumentSnapshotField = true,
+  }: {
+    parseDates?: (
+      | string
+      | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites' | '__snapshot'>
+    )[]
+    /**
+     * If `true`, `data` will not include the firestore `__snapshot` field. You might want this if you need your data to be JSON serializable.
+     *
+     * Default: `false`
+     */
+    ignoreFirestoreDocumentSnapshotField?: boolean
+  } = {}
 ): Promise<ListenerReturnType<Doc>> => {
   return await new Promise(resolve => {
     const unsubscribe = fuego.db.doc(path).onSnapshot(doc => {
@@ -120,6 +149,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
           id: doc.id,
           exists: doc.exists,
           hasPendingWrites: doc.metadata.hasPendingWrites,
+          __snapshot: ignoreFirestoreDocumentSnapshotField ? undefined : doc,
         } as unknown) as Doc,
         parseDates
       )
@@ -183,7 +213,12 @@ export const useDocument = <
   options: Options<Doc> = empty.object
 ) => {
   const unsubscribeRef = useRef<ListenerReturnType['unsubscribe'] | null>(null)
-  const { listen = false, parseDates, ...opts } = options
+  const {
+    listen = false,
+    parseDates,
+    ignoreFirestoreDocumentSnapshotField = true,
+    ...opts
+  } = options
 
   // if we're listening, the firestore listener handles all revalidation
   const {
@@ -217,6 +252,11 @@ export const useDocument = <
     datesToParse.current = parseDates
   }, [parseDates])
 
+  const shouldIgnoreSnapshot = useRef(ignoreFirestoreDocumentSnapshotField)
+  useEffect(() => {
+    shouldIgnoreSnapshot.current = ignoreFirestoreDocumentSnapshotField
+  }, [ignoreFirestoreDocumentSnapshotField])
+
   const swr = useSWR<Doc | null>(
     path,
     async (path: string) => {
@@ -227,13 +267,17 @@ export const useDocument = <
         }
         const { unsubscribe, initialData } = await createListenerAsync<Doc>(
           path,
-          datesToParse.current
+          {
+            parseDates: datesToParse.current,
+            ignoreFirestoreDocumentSnapshotField: shouldIgnoreSnapshot.current,
+          }
         )
         unsubscribeRef.current = unsubscribe
         return initialData
       }
       const data = await getDocument<Doc>(path, {
         parseDates: datesToParse.current,
+        ignoreFirestoreDocumentSnapshotField: shouldIgnoreSnapshot.current,
       })
       return data
     },
