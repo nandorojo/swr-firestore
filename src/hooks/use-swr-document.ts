@@ -298,7 +298,7 @@ export const useDocument = <
         docRef = docRef.withConverter(documentDataConverter)
       return docRef.set(data, options)
     },
-    [path, listen, connectedMutate]
+    [path, listen, connectedMutate, documentDataConverter]
   )
 
   /**
@@ -323,7 +323,7 @@ export const useDocument = <
         docRef = docRef.withConverter(documentDataConverter)
       return docRef.update(data)
     },
-    [listen, path, connectedMutate]
+    [listen, path, connectedMutate, documentDataConverter]
   )
 
   const connectedDelete = useCallback(() => {

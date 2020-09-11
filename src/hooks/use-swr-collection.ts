@@ -468,7 +468,7 @@ export const useCollection = <
 
       return batch.commit()
     },
-    [listen, mutate, path]
+    [listen, mutate, path, documentDataConverter]
   )
 
   return {
