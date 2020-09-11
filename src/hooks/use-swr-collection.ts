@@ -5,14 +5,13 @@ import { useRef, useEffect, useMemo, useCallback } from 'react'
 import { empty } from '../helpers/empty'
 import { collectionCache } from '../classes/Cache'
 
-type Document<T = {}> = T & { id: string }
+import { Document, Converter } from '../types'
 
 import {
   FieldPath,
   OrderByDirection,
   WhereFilterOp,
   Query,
-  FirestoreDataConverter,
 } from '@firebase/firestore-types'
 import { isDev } from '../helpers/is-dev'
 import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
@@ -36,8 +35,6 @@ type WhereItem<Doc extends object = {}, Key = keyof Doc> = [
 ]
 type WhereArray<Doc extends object = {}> = WhereItem<Doc>[]
 type WhereType<Doc extends object = {}> = WhereItem<Doc> | WhereArray<Doc>
-
-type ConverterType<Doc extends object = {}> = FirestoreDataConverter<Doc>
 
 type Ref<Doc extends object = {}> = {
   limit?: number
@@ -84,7 +81,7 @@ const createRef = <Doc extends object = {}>(
     documentDataConverter,
   }: {
     isCollectionGroup?: boolean
-    documentDataConverter?: ConverterType<Doc>
+    documentDataConverter?: Converter<Doc>
   } = empty.object
 ) => {
   let ref: Query = fuego.db.collection(path)
@@ -157,7 +154,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
     isCollectionGroup = false,
   }: {
     parseDates?: (string | keyof Doc)[]
-    documentDataConverter?: ConverterType<Doc>
+    documentDataConverter?: Converter<Doc>
     isCollectionGroup?: boolean
   }
 ): Promise<ListenerReturnType<Doc>> => {
@@ -232,7 +229,7 @@ export const useCollection = <
      * Default: `false`
      */
     listen?: boolean
-    documentDataConverter?: ConverterType<Doc>
+    documentDataConverter?: Converter<Doc>
     /**
      * An array of key strings that indicate where there will be dates in the document.
      *

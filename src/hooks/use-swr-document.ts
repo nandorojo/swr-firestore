@@ -1,15 +1,13 @@
 import useSWR, { mutate, ConfigInterface } from 'swr'
-import { SetOptions, FirestoreDataConverter } from '@firebase/firestore-types'
+import { SetOptions } from '@firebase/firestore-types'
 import { fuego } from '../context'
 import { useRef, useEffect, useCallback } from 'react'
 import { empty } from '../helpers/empty'
-import { Document } from '../types/Document'
+import { Document, Converter } from '../types'
 import { collectionCache } from '../classes/Cache'
 import { isDev } from '../helpers/is-dev'
 import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
 import { deleteDocument } from './static-mutations'
-
-type ConverterType<Doc extends object = {}> = FirestoreDataConverter<Doc>
 
 type Options<Doc extends Document = Document> = {
   /**
@@ -29,7 +27,7 @@ type Options<Doc extends Document = Document> = {
     | string
     | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites'>
   )[]
-  documentDataConverter?: ConverterType<Doc>
+  documentDataConverter?: Converter<Doc>
 } & ConfigInterface<Doc | null>
 
 type ListenerReturnType<Doc extends Document = Document> = {
@@ -43,7 +41,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
     | string
     | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites'>
   )[],
-  documentDataConverter?: ConverterType<Doc>
+  documentDataConverter?: Converter<Doc>
 ): Promise<ListenerReturnType<Doc>> => {
   return await new Promise(resolve => {
     let docRef = fuego.db.doc(path)
