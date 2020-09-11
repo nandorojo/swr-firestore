@@ -96,7 +96,11 @@ const firebaseConfig = {
 const fuego = new Fuego(firebaseConfig)
 
 export default function App() {
-  return <FuegoProvider fuego={fuego}>{/* Your app code here! */}</FuegoProvider>
+  return (
+    <FuegoProvider fuego={fuego}>
+      <YourAppHere />
+    </FuegoProvider>
+  )
 }
 ```
 
@@ -117,7 +121,9 @@ import { Text } from 'react-native'
 
 export default function User() {
   const user = { id: 'Fernando' }
-  const { data, update, error } = useDocument(`users/${user.id}`, { listen: true })
+  const { data, update, error } = useDocument(`users/${user.id}`, {
+    listen: true,
+  })
 
   if (error) return <Text>Error!</Text>
   if (!data) return <Text>Loading...</Text>
@@ -139,7 +145,7 @@ export default function UserList() {
   if (error) return <Text>Error!</Text>
   if (!data) return <Text>Loading...</Text>
 
-  return data.map((user) => <Text key={user.id}>{user.name}</Text>)
+  return data.map(user => <Text key={user.id}>{user.name}</Text>)
 }
 ```
 
@@ -166,7 +172,7 @@ const { data } = useCollection('users', {
   where: ['name', '==', 'fernando'],
   limit: 10,
   orderBy: ['age', 'desc'],
-  listen: true
+  listen: true,
 })
 ```
 
@@ -177,7 +183,7 @@ const { data } = useCollection('users', {
 const { data } = useDocument('albums/nothing-was-the-same', {
   shouldRetryOnError: false,
   onSuccess: console.log,
-  loadingTimeout: 2000
+  loadingTimeout: 2000,
 })
 ```
 
@@ -190,12 +196,15 @@ const { data } = useCollection(
   {
     listen: true,
     // you can pass multiple where conditions if you want
-    where: [['artist', '==', 'Drake'], ['year', '==', '2020']]
+    where: [
+      ['artist', '==', 'Drake'],
+      ['year', '==', '2020'],
+    ],
   },
   {
     shouldRetryOnError: false,
     onSuccess: console.log,
-    loadingTimeout: 2000
+    loadingTimeout: 2000,
   }
 )
 ```
@@ -204,7 +213,7 @@ const { data } = useCollection(
 
 ```typescript
 const { data, add } = useCollection('albums', {
-  where: ['artist', '==', 'Drake']
+  where: ['artist', '==', 'Drake'],
 })
 
 const onPress = () => {
@@ -212,7 +221,7 @@ const onPress = () => {
   add({
     title: 'Dark Lane Demo Tapes',
     artist: 'Drake',
-    year: '2020'
+    year: '2020',
   })
 }
 ```
@@ -226,14 +235,14 @@ const onReleaseAlbum = () => {
   // calling this will automatically update your global cache & Firestore
   set(
     {
-      released: true
+      released: true,
     },
     { merge: true }
   )
 
   // or you could call this:
   update({
-    released: true
+    released: true,
   })
 }
 ```
@@ -251,7 +260,7 @@ import { useDoormanUser } from 'react-doorman'
 
 const { uid } = useDoormanUser()
 const { data } = useCollection(uid ? 'users' : null, {
-  where: ['friends', 'array-contains', uid]
+  where: ['friends', 'array-contains', uid],
 })
 ```
 
@@ -263,7 +272,9 @@ const me = { id: 'fernando' }
 const { data: user } = useDocument<{ favoriteSong: string }>(`users/${me.id}`)
 
 // only send the request once the user.favoriteSong exists!
-const { data: song } = useDocument(user?.favoriteSong ? `songs/${user.favoriteSong}` : null)
+const { data: song } = useDocument(
+  user?.favoriteSong ? `songs/${user.favoriteSong}` : null
+)
 ```
 
 ### Parse date fields in your documents
@@ -288,7 +299,7 @@ In order to turn `createdAt` and `lastUpdated.date` into JS objects, just use th
 
 ```typescript
 const { data } = useDocument<User>('user/fernando', {
-  parseDates: ['createdAt', 'lastUpdated.date']
+  parseDates: ['createdAt', 'lastUpdated.date'],
 })
 
 let createdAt: Date
@@ -304,7 +315,7 @@ if (data) {
 
 ```typescript
 const { data } = useCollection<User>('user', {
-  parseDates: ['createdAt', 'lastUpdated.date']
+  parseDates: ['createdAt', 'lastUpdated.date'],
 })
 
 if (data) {
@@ -312,7 +323,6 @@ if (data) {
     document.createdAt // JS date!
   })
 }
-
 ```
 
 For more explanation on the dates, see [issue #4](https://github.com/nandorojo/swr-firestore/issues/4).
@@ -322,12 +332,12 @@ For more explanation on the dates, see [issue #4](https://github.com/nandorojo/s
 Video [here](https://imgur.com/a/o9AlI4N).
 
 ```typescript
-import React from "react";
-import { fuego, useCollection } from "@nandorojo/swr-firestore";
+import React from 'react'
+import { fuego, useCollection } from '@nandorojo/swr-firestore'
 
-const collection = "dump";
-const limit = 1;
-const orderBy = "text";
+const collection = 'dump'
+const limit = 1
+const orderBy = 'text'
 
 export default function Paginate() {
   const { data, mutate } = useCollection<{ text: string }>(
@@ -343,16 +353,16 @@ export default function Paginate() {
       refreshWhenOffline: false,
       refreshInterval: 0,
     }
-  );
+  )
 
   const paginate = async () => {
-    if (!data?.length) return;
+    if (!data?.length) return
 
-    const ref = fuego.db.collection(collection);
+    const ref = fuego.db.collection(collection)
 
     // get the last document in our current query
     // ideally we could pass just a doc ID, but firestore requires the doc snapshot
-    const startAfterDocument = await ref.doc(data[data.length - 1].id).get();
+    const startAfterDocument = await ref.doc(data[data.length - 1].id).get()
 
     // get more documents, after the most recent one we have
     const moreDocs = await ref
@@ -360,16 +370,16 @@ export default function Paginate() {
       .startAfter(startAfterDocument)
       .limit(limit)
       .get()
-      .then((d) => {
-        const docs = [];
-        d.docs.forEach((doc) => docs.push({ ...doc.data(), id: doc.id }));
-        return docs;
-      });
+      .then(d => {
+        const docs = []
+        d.docs.forEach(doc => docs.push({ ...doc.data(), id: doc.id }))
+        return docs
+      })
 
     // mutate our local cache, adding the docs we just added
     // set revalidate to false to prevent SWR from revalidating on its own
-    mutate((state) => [...state, ...moreDocs], false);
-  };
+    mutate(state => [...state, ...moreDocs], false)
+  }
 
   return data ? (
     <div>
@@ -380,7 +390,7 @@ export default function Paginate() {
     </div>
   ) : (
     <div>Loading...</div>
-  );
+  )
 }
 ```
 
@@ -417,14 +427,24 @@ import {
   // these all update BOTH Firestore & the local cache ⚡️
   set, // set a firestore document
   update, // update a firestore document
-  fuego // get the firebase instance used by this lib
+  fuego, // get the firebase instance used by this lib
+  getCollection, // prefetch a collection, without being hooked into SWR or React
+  getDocument, // prefetch a document, without being hooked into SWR or React
 } from '@nandorojo/swr-firestore'
 ```
 
 ## `useDocument(path, options)`
 
 ```js
-const { data, set, update, deleteDocument, error, isValidating, mutate } = useDocument(path, options)
+const {
+  data,
+  set,
+  update,
+  deleteDocument,
+  error,
+  isValidating,
+  mutate,
+} = useDocument(path, options)
 ```
 
 ### Arguments
@@ -435,6 +455,29 @@ const { data, set, update, deleteDocument, error, isValidating, mutate } = useDo
 - `options` _(optional)_ A dictionary with added options for the query. Takes the folowing values:
   - `listen = false`: If `true`, sets up a listener for this document that updates whenever it changes.
   - You can also pass any of the [options available from `useSWR`](https://github.com/zeit/swr#options).
+  - `ignoreFirestoreDocumentSnapshotField = true`. See elaboration below.
+  - `parseDates`: An array of string keys that correspond to dates in your document. [Example](#parse-date-fields-in-your-documents).
+
+##### `ignoreFirestoreDocumentSnapshotField`
+
+If `true`, docs returned in `data` will not include the firestore `__snapshot` field. If `false`, it will include a `__snapshot` field. This lets you access the document snapshot, but makes the document not JSON serializable.
+
+By default, it ignores the `__snapshot` field. This makes it easier for newcomers to use `JSON.stringify` without weird errors. You must explicitly set it to `false` to use it.
+
+```js
+// include the firestore document snapshots
+const { data } = useDocument('users/fernando', {
+  ignoreFirestoreDocumentSnapshotField: false,
+})
+
+if (data) {
+  const path = data.__snapshot.ref.path
+}
+```
+
+The `__snapshot` field is the exact snapshot returned by Firestore.
+
+See Firestore's [snapshot docs](https://firebase.google.com/docs/reference/js/firebase.firestore.QuerySnapshot) for more.
 
 ### Return values
 
@@ -459,7 +502,11 @@ The dictionary also includes the following [from `useSWR`](https://github.com/ze
 ## `useCollection(path, query, options)`
 
 ```js
-const { data, add, error, isValidating, mutate } = useCollection(path, query, options)
+const { data, add, error, isValidating, mutate } = useCollection(
+  path,
+  query,
+  options
+)
 ```
 
 ### Arguments
@@ -487,6 +534,7 @@ _(optional)_ Dictionary that accepts any of the following optional values:
 - `endAt`: number to end at
 - `startAfter`: number to start after
 - `endBefore`: number to end before
+- `ignoreFirestoreDocumentSnapshotField = true`: If `true`, docs returned in `data` will not include the firestore `__snapshot` field. If `false`, it will include a `__snapshot` field. This lets you access the document snapshot, but makes the document not JSON serializable.
 
 ##### `where`
 
@@ -497,17 +545,20 @@ Each array follows this outline: `['key', 'comparison-operator', 'value']`. This
 ```js
 // get all users whoses name are Fernando
 useCollection('users', {
-  where: ['name', '==', 'Fernando']
+  where: ['name', '==', 'Fernando'],
 })
 
 // get all users whose names are Fernando & who are hungry
 useCollection('users', {
-  where: [['name', '==', 'Fernando'], ['isHungry', '==', true]]
+  where: [
+    ['name', '==', 'Fernando'],
+    ['isHungry', '==', true],
+  ],
 })
 
 // get all users whose friends array contains Fernando
 useCollection('users', {
-  where: ['friends', 'array-contains', 'Fernando']
+  where: ['friends', 'array-contains', 'Fernando'],
 })
 ```
 
@@ -520,22 +571,45 @@ Each array follows this outline: `['key', 'desc' | 'asc']`. This is pulled direc
 ```js
 // get users, ordered by name
 useCollection('users', {
-  orderBy: 'name'
+  orderBy: 'name',
 })
 
 // get users, ordered by name in descending order
 useCollection('users', {
-  orderBy: ['name', 'desc']
+  orderBy: ['name', 'desc'],
 })
 
 // get users, ordered by name in descending order & hunger in ascending order
 useCollection('users', {
   orderBy: [
     ['name', 'desc'], //
-    ['isHungry', 'asc']
-  ]
+    ['isHungry', 'asc'],
+  ],
 })
 ```
+
+##### `ignoreFirestoreDocumentSnapshotField`
+
+If `true`, docs returned in `data` will not include the firestore `__snapshot` field. If `false`, it will include a `__snapshot` field. This lets you access the document snapshot, but makes the document not JSON serializable.
+
+By default, it ignores the `__snapshot` field. This makes it easier for newcomers to use `JSON.stringify` without weird errors. You must explicitly set it to `false` to use it.
+
+```js
+// include the firestore document snapshots
+const { data } = useCollection('users', {
+  ignoreFirestoreDocumentSnapshotField: false,
+})
+
+if (data) {
+  data.forEach(document => {
+    const path = document?.__snapshot.ref.path
+  })
+}
+```
+
+The `__snapshot` field is the exact snapshot returned by Firestore.
+
+See Firestore's [snapshot docs](https://firebase.google.com/docs/reference/js/firebase.firestore.QuerySnapshot) for more.
 
 #### `options`
 
@@ -585,8 +659,9 @@ Extends the Firestore document [`add` function](https://firebase.google.com/docs
 ## `deleteDocument(path, ignoreLocalMutations = false)`
 
 Extends the Firestore document [`delete` function](https://firebase.google.com/docs/firestore/manage-data/delete-data).
-  - It also updates the local cache using SWR's `mutate` by deleting your document from this query and all collection queries that have fetched this document. This will prove highly convenient over the regular `delete` function from Firestore.  
-  - Second argument is a boolean that defaults to false. If `true`, it will not update the local cache, and instead only send delete to Firestore.
+
+- It also updates the local cache using SWR's `mutate` by deleting your document from this query and all collection queries that have fetched this document. This will prove highly convenient over the regular `delete` function from Firestore.
+- Second argument is a boolean that defaults to false. If `true`, it will not update the local cache, and instead only send delete to Firestore.
 
 ## `revalidateDocument(path)`
 
@@ -615,6 +690,35 @@ fuego.db.doc('users/Fernando').get()
 
 fuego.auth().currentUser?.uid
 ```
+
+## `getDocument(path, options?)`
+
+If you don't want to use `useDocument` in a component, you can use this function outside of the React scope.
+
+### Arguments
+
+- **`path` required** The unique document path for your Firestore document.
+- `options`
+  - `ignoreFirestoreDocumentSnapshotField = true`. If `false`, it will return a `__snapshot` field too.
+  - `parseDates`: An array of string keys that correspond to dates in your document. [Example](#parse-date-fields-in-your-documents).
+
+### Returns
+
+A promise with the firestore doc and some useful fields. See the [useDocument](#useDocument) `data` return type for more info.
+
+## `getCollection(path, query?, options?)`
+
+If you don't want to use `useCollection` in a component, you can use this function outside of the React scope.
+
+### Arguments
+
+- **`path` required** The unique collection path for your Firestore collection.
+  - `ignoreFirestoreDocumentSnapshotField = true`. If `false`, it will return a `__snapshot` field too.
+  - `parseDates`: An array of string keys that correspond to dates in your document. [Example](#parse-date-fields-in-your-documents).
+- `query` refer to the second argument of [`useCollection`](#useCollection).
+- `options`
+  - `ignoreFirestoreDocumentSnapshotField = true`. If `false`, it will return a `__snapshot` field too in each document.
+  - `parseDates`: An array of string keys that correspond to dates in your documents. [Example](#parse-date-fields-in-your-documents).
 
 # Features
 

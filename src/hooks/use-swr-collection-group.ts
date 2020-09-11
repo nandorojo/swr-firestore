@@ -1,22 +1,30 @@
-import { useCollection } from './use-swr-collection'
+import { Document } from '../types'
+import {
+  CollectionQueryType,
+  CollectionSWROptions,
+  useCollection,
+} from './use-swr-collection'
 
-type UseCollection = Parameters<typeof useCollection>
+// type UseCollection = Parameters<typeof useCollection>
 
 /**
  *
  * 🚨 Experimental. I recommend only using this only to test for now. There are some edge cases still being figured out for caching collection groups.
  */
-export const useExperimentalCollectionGroup = (
+export const useExperimentalCollectionGroup = <
+  Data extends object = {},
+  Doc extends Document = Document<Data>
+>(
   collection: string | null,
-  query: Omit<UseCollection[1], 'isCollectionGroup'>,
-  options: UseCollection[2]
+  query: Omit<CollectionQueryType<Data>, 'isCollectionGroup'>,
+  swrOptions: CollectionSWROptions<Doc>
 ) => {
-  return useCollection(
+  return useCollection<Data>(
     collection,
     {
       ...query,
-      __unstableCollectionGroup: true,
+      isCollectionGroup: true,
     },
-    options
+    swrOptions as any
   )
 }

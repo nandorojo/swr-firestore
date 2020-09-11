@@ -25,8 +25,16 @@ type Options<Doc extends Document = Document> = {
    */
   parseDates?: (
     | string
-    | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites'>
+    | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites' | '__snapshot'>
   )[]
+  /**
+   * If `true`, doc returned in `data` will not include the firestore `__snapshot` field.
+   *
+   * If `false`, it will include a `__snapshot` field. This lets you access the document snapshot, but makes the document not JSON serializable.
+   *
+   * Default: `true`
+   */
+  ignoreFirestoreDocumentSnapshotField?: boolean
   documentDataConverter?: Converter<Doc>
 } & ConfigInterface<Doc | null>
 
@@ -35,13 +43,108 @@ type ListenerReturnType<Doc extends Document = Document> = {
   unsubscribe: ReturnType<ReturnType<typeof fuego['db']['doc']>['onSnapshot']>
 }
 
+export const getDocument = async <Doc extends Document = Document>(
+  path: string,
+  {
+    parseDates,
+    ignoreFirestoreDocumentSnapshotField = true,
+    documentDataConverter,
+  }: {
+    parseDates?: (
+      | string
+      | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites' | '__snapshot'>
+    )[]
+    /**
+     * If `true`, doc returned in `data` will not include the firestore `__snapshot` field.
+     *
+     * If `false`, it will include a `__snapshot` field. This lets you access the document snapshot, but makes the document not JSON serializable.
+     *
+     * Default: `true`
+     */
+    ignoreFirestoreDocumentSnapshotField?: boolean
+    documentDataConverter?: Converter<Doc>
+  } = empty.object
+) => {
+  let docRef = fuego.db.doc(path)
+  if (documentDataConverter) {
+    docRef = docRef.withConverter(documentDataConverter)
+  }
+  const data = await docRef.get().then(doc => {
+    const docData =
+      doc.data({
+        serverTimestamps: 'estimate',
+      }) ?? empty.object
+    if (
+      isDev &&
+      // @ts-ignore
+      (docData.exists || docData.id || docData.hasPendingWrites)
+    ) {
+      console.warn(
+        '[get-document] warning: Your document, ',
+        doc.id,
+        ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
+      )
+    }
+    return withDocumentDatesParsed(
+      ({
+        ...docData,
+        id: doc.id,
+        exists: doc.exists,
+        hasPendingWrites: doc.metadata.hasPendingWrites,
+        __snapshot: ignoreFirestoreDocumentSnapshotField ? undefined : doc,
+      } as unknown) as Doc,
+      parseDates
+    )
+  })
+
+  // update the document in any collections listening to the same document
+  let collection: string | string[] = path.split(`/${data.id}`)
+
+  collection.pop() // remove last item, which is the /id
+  collection = collection.join('/') // rejoin the path
+  if (collection) {
+    collectionCache.getSWRKeysFromCollectionPath(collection).forEach(key => {
+      mutate(
+        key,
+        (currentState: Doc[] = empty.array): Doc[] => {
+          // don't mutate the current state if it doesn't include this doc
+          if (!currentState.some(doc => doc.id === data.id)) {
+            return currentState
+          }
+          return currentState.map(document => {
+            if (document.id === data.id) {
+              return data
+            }
+            return document
+          })
+        },
+        false
+      )
+    })
+  }
+
+  return data
+}
+
 const createListenerAsync = async <Doc extends Document = Document>(
   path: string,
-  parseDates?: (
-    | string
-    | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites'>
-  )[],
-  documentDataConverter?: Converter<Doc>
+  {
+    parseDates,
+    ignoreFirestoreDocumentSnapshotField = true,
+    documentDataConverter,
+  }: {
+    parseDates?: (
+      | string
+      | keyof Omit<Doc, 'id' | 'exists' | 'hasPendingWrites' | '__snapshot'>
+    )[]
+    /**
+     * If `true`, `data` will not include the firestore `__snapshot` field. You might want this if you need your data to be JSON serializable.
+     *
+     * Default: `false`
+     */
+    ignoreFirestoreDocumentSnapshotField?: boolean
+    documentDataConverter?: Converter<Doc>
+  } = {}
 ): Promise<ListenerReturnType<Doc>> => {
   return await new Promise(resolve => {
     let docRef = fuego.db.doc(path)
@@ -56,6 +159,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
           id: doc.id,
           exists: doc.exists,
           hasPendingWrites: doc.metadata.hasPendingWrites,
+          __snapshot: ignoreFirestoreDocumentSnapshotField ? undefined : doc,
         } as unknown) as Doc,
         parseDates
       )
@@ -119,7 +223,12 @@ export const useDocument = <
   options: Options<Doc> = empty.object
 ) => {
   const unsubscribeRef = useRef<ListenerReturnType['unsubscribe'] | null>(null)
-  const { listen = false, parseDates, ...opts } = options
+  const {
+    listen = false,
+    parseDates,
+    ignoreFirestoreDocumentSnapshotField = true,
+    ...opts
+  } = options
 
   // if we're listening, the firestore listener handles all revalidation
   const {
@@ -154,6 +263,11 @@ export const useDocument = <
     datesToParse.current = parseDates
   }, [parseDates])
 
+  const shouldIgnoreSnapshot = useRef(ignoreFirestoreDocumentSnapshotField)
+  useEffect(() => {
+    shouldIgnoreSnapshot.current = ignoreFirestoreDocumentSnapshotField
+  }, [ignoreFirestoreDocumentSnapshotField])
+
   const documentConverter = useRef(documentDataConverter)
   useEffect(() => {
     documentConverter.current = documentDataConverter
@@ -169,67 +283,21 @@ export const useDocument = <
         }
         const { unsubscribe, initialData } = await createListenerAsync<Doc>(
           path,
-          datesToParse.current,
-          documentConverter.current
+          {
+            parseDates: datesToParse.current,
+            ignoreFirestoreDocumentSnapshotField: shouldIgnoreSnapshot.current,
+            documentDataConverter: documentConverter.current,
+          }
         )
         unsubscribeRef.current = unsubscribe
         return initialData
       }
-      let docRef = fuego.db.doc(path)
-      if (documentDataConverter) {
-        docRef = docRef.withConverter(documentDataConverter)
-      }
-      const data = await docRef.get().then(doc => {
-        const docData = doc.data() ?? empty.object
-        if (
-          isDev &&
-          // @ts-ignore
-          (docData.exists || docData.id || docData.hasPendingWrites)
-        ) {
-          console.warn(
-            '[use-document] warning: Your document, ',
-            doc.id,
-            ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
-          )
-        }
-        return withDocumentDatesParsed(
-          ({
-            ...docData,
-            id: doc.id,
-            exists: doc.exists,
-            hasPendingWrites: doc.metadata.hasPendingWrites,
-          } as unknown) as Doc,
-          datesToParse.current
-        )
+
+      const data = await getDocument<Doc>(path, {
+        parseDates: datesToParse.current,
+        ignoreFirestoreDocumentSnapshotField: shouldIgnoreSnapshot.current,
+        documentDataConverter: documentConverter.current,
       })
-
-      // update the document in any collections listening to the same document
-      let collection: string | string[] = path.split(`/${data.id}`)
-      collection.pop() // remove last item, which is the /id
-      collection = collection.join('/') // rejoin the path
-      if (collection) {
-        collectionCache
-          .getSWRKeysFromCollectionPath(collection)
-          .forEach(key => {
-            mutate(
-              key,
-              (currentState: Doc[] = empty.array): Doc[] => {
-                // don't mutate the current state if it doesn't include this doc
-                if (!currentState.some(doc => doc.id === data.id)) {
-                  return currentState
-                }
-                return currentState.map(document => {
-                  if (document.id === data.id) {
-                    return data
-                  }
-                  return document
-                })
-              },
-              false
-            )
-          })
-      }
-
       return data
     },
     swrOptions

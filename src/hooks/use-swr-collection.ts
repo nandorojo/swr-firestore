@@ -5,8 +5,6 @@ import { useRef, useEffect, useMemo, useCallback } from 'react'
 import { empty } from '../helpers/empty'
 import { collectionCache } from '../classes/Cache'
 
-import { Document, Converter } from '../types'
-
 import {
   FieldPath,
   OrderByDirection,
@@ -15,6 +13,7 @@ import {
 } from '@firebase/firestore-types'
 import { isDev } from '../helpers/is-dev'
 import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
+import { Converter, Document } from '../types'
 
 // here we get the "key" from our data, to add intellisense for any "orderBy" in the queries and such.
 type OrderByArray<Doc extends object = {}, Key = keyof Doc> = [
@@ -36,10 +35,11 @@ type WhereItem<Doc extends object = {}, Key = keyof Doc> = [
 type WhereArray<Doc extends object = {}> = WhereItem<Doc>[]
 type WhereType<Doc extends object = {}> = WhereItem<Doc> | WhereArray<Doc>
 
-type Ref<Doc extends object = {}> = {
+export type CollectionQueryType<Doc extends object = {}> = {
   limit?: number
   orderBy?: OrderByType<Doc>
   where?: WhereType<Doc>
+  isCollectionGroup?: boolean
 
   /**
    * For now, this can only be a number, since it has to be JSON serializable.
@@ -73,72 +73,138 @@ type Ref<Doc extends object = {}> = {
   // endBefore?: number | DocumentSnapshot
 }
 
-const createRef = <Doc extends object = {}>(
+export const getCollection = async <Doc extends Document = Document>(
   path: string,
-  { where, orderBy, limit, startAt, endAt, startAfter, endBefore }: Ref<Doc>,
+  // queryString: string = '{}',
+  query: CollectionQueryType<Doc> = {},
   {
-    isCollectionGroup = false,
+    parseDates,
+    ignoreFirestoreDocumentSnapshotField,
     documentDataConverter,
   }: {
-    isCollectionGroup?: boolean
+    parseDates?: (string | keyof Doc)[]
+    /**
+     * If `true`, docs returned in `data` will not include the firestore `__snapshot` field. If `false`, it will include a `__snapshot` field. This lets you access the document snapshot, but makes the document not JSON serializable.
+     *
+     * Default: `false`
+     */
+    ignoreFirestoreDocumentSnapshotField?: boolean
     documentDataConverter?: Converter<Doc>
   } = empty.object
 ) => {
-  let ref: Query = fuego.db.collection(path)
-
-  if (isCollectionGroup) {
-    ref = fuego.db.collectionGroup(path)
-  }
-
-  if (where) {
-    function multipleConditions(w: WhereType<Doc>): w is WhereArray<Doc> {
-      return !!(w as WhereArray) && Array.isArray(w[0])
-    }
-    if (multipleConditions(where)) {
-      where.forEach(w => {
-        ref = ref.where(w[0] as string | FieldPath, w[1], w[2])
-      })
-    } else if (typeof where[0] === 'string' && typeof where[1] === 'string') {
-      ref = ref.where(where[0], where[1], where[2])
-    }
-  }
-  if (orderBy) {
-    if (typeof orderBy === 'string') {
-      ref = ref.orderBy(orderBy)
-    } else if (Array.isArray(orderBy)) {
-      function multipleOrderBy(o: OrderByType<Doc>): o is OrderByArray<Doc>[] {
-        return Array.isArray((o as OrderByArray<Doc>[])[0])
+  const ref = createFirestoreRef(path, query, documentDataConverter)
+  const data: Doc[] = await ref.get().then(querySnapshot => {
+    const array: typeof data = []
+    querySnapshot.forEach(doc => {
+      const docData =
+        doc.data({
+          serverTimestamps: 'estimate',
+        }) ?? empty.object
+      const docToAdd = withDocumentDatesParsed(
+        {
+          ...docData,
+          id: doc.id,
+          exists: doc.exists,
+          hasPendingWrites: doc.metadata.hasPendingWrites,
+          __snapshot: ignoreFirestoreDocumentSnapshotField ? undefined : doc,
+        } as any,
+        parseDates
+      )
+      // update individual docs in the cache
+      mutateStatic(doc.ref.path, docToAdd, false)
+      if (
+        isDev &&
+        // @ts-ignore
+        (docData.exists || docData.id || docData.hasPendingWrites)
+      ) {
+        console.warn(
+          '[get-collection] warning: Your document, ',
+          doc.id,
+          ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
+        )
       }
-      if (multipleOrderBy(orderBy)) {
-        orderBy.forEach(([order, direction]) => {
-          ref = ref.orderBy(order as string | FieldPath, direction)
-        })
-      } else {
-        const [order, direction] = orderBy
-        ref = ref.orderBy(order as string | FieldPath, direction)
-      }
-    }
-  }
-  if (startAt) {
-    ref = ref.startAt(startAt)
-  }
-  if (endAt) {
-    ref = ref.endAt(endAt)
-  }
-  if (startAfter) {
-    ref = ref.startAfter(startAfter)
-  }
-  if (endBefore) {
-    ref = ref.endBefore(endBefore)
-  }
-  if (limit) {
-    ref = ref.limit(limit)
-  }
-  if (documentDataConverter) {
-    ref = ref.withConverter(documentDataConverter)
-  }
-  return ref
+      array.push(docToAdd)
+    })
+    return array
+  })
+  return data
 }
+
+const createFirestoreRef = <Doc extends object = {}>(
+  path: string,
+  {
+    where,
+    orderBy,
+    limit,
+    startAt,
+    endAt,
+    startAfter,
+    endBefore,
+    isCollectionGroup,
+  }: CollectionQueryType<Doc>,
+  documentDataConverter?: Converter<Doc>
+) =>
+  // { isCollectionGroup = false }: { isCollectionGroup?: boolean } = empty.object
+  {
+    let ref: Query = fuego.db.collection(path)
+
+    if (isCollectionGroup) {
+      ref = fuego.db.collectionGroup(path)
+    }
+
+    if (where) {
+      function multipleConditions(w: WhereType<Doc>): w is WhereArray<Doc> {
+        return !!(w as WhereArray) && Array.isArray(w[0])
+      }
+      if (multipleConditions(where)) {
+        where.forEach(w => {
+          ref = ref.where(w[0] as string | FieldPath, w[1], w[2])
+        })
+      } else if (typeof where[0] === 'string' && typeof where[1] === 'string') {
+        ref = ref.where(where[0], where[1], where[2])
+      }
+    }
+
+    if (orderBy) {
+      if (typeof orderBy === 'string') {
+        ref = ref.orderBy(orderBy)
+      } else if (Array.isArray(orderBy)) {
+        function multipleOrderBy(
+          o: OrderByType<Doc>
+        ): o is OrderByArray<Doc>[] {
+          return Array.isArray((o as OrderByArray<Doc>[])[0])
+        }
+        if (multipleOrderBy(orderBy)) {
+          orderBy.forEach(([order, direction]) => {
+            ref = ref.orderBy(order as string | FieldPath, direction)
+          })
+        } else {
+          const [order, direction] = orderBy
+          ref = ref.orderBy(order as string | FieldPath, direction)
+        }
+      }
+    }
+
+    if (startAt) {
+      ref = ref.startAt(startAt)
+    }
+    if (endAt) {
+      ref = ref.endAt(endAt)
+    }
+    if (startAfter) {
+      ref = ref.startAfter(startAfter)
+    }
+    if (endBefore) {
+      ref = ref.endBefore(endBefore)
+    }
+    if (limit) {
+      ref = ref.limit(limit)
+    }
+    if (documentDataConverter) {
+      ref = ref.withConverter(documentDataConverter)
+    }
+    return ref
+  }
 
 type ListenerReturnType<Doc extends Document = Document> = {
   initialData: Doc[] | null
@@ -150,20 +216,23 @@ const createListenerAsync = async <Doc extends Document = Document>(
   queryString: string,
   {
     parseDates,
+    ignoreFirestoreDocumentSnapshotField = true,
     documentDataConverter,
-    isCollectionGroup = false,
-  }: {
+  }: // isCollectionGroup = false,
+  {
     parseDates?: (string | keyof Doc)[]
+    /**
+     * If `true`, docs returned in `data` will not include the firestore `__snapshot` field. If `false`, it will include a `__snapshot` field. This lets you access the document snapshot, but makes the document not JSON serializable.
+     *
+     * Default: `true`
+     */
+    ignoreFirestoreDocumentSnapshotField?: boolean
     documentDataConverter?: Converter<Doc>
-    isCollectionGroup?: boolean
   }
 ): Promise<ListenerReturnType<Doc>> => {
   return new Promise(resolve => {
-    const query: Ref = JSON.parse(queryString) ?? {}
-    const ref = createRef(path, query, {
-      documentDataConverter,
-      isCollectionGroup,
-    })
+    const query: CollectionQueryType = JSON.parse(queryString) ?? {}
+    const ref = createFirestoreRef(path, query, documentDataConverter)
     const unsubscribe = ref.onSnapshot(
       { includeMetadataChanges: true },
       querySnapshot => {
@@ -179,6 +248,9 @@ const createListenerAsync = async <Doc extends Document = Document>(
               id: doc.id,
               exists: doc.exists,
               hasPendingWrites: doc.metadata.hasPendingWrites,
+              __snapshot: ignoreFirestoreDocumentSnapshotField
+                ? undefined
+                : doc,
             } as any,
             parseDates
           )
@@ -194,7 +266,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
             )
           }
           // update individual docs in the cache
-          mutateStatic(`${path}/${doc.id}`, docToAdd, false)
+          mutateStatic(doc.ref.path, docToAdd, false)
           data.push(docToAdd)
         })
         // resolve initial data
@@ -209,7 +281,9 @@ const createListenerAsync = async <Doc extends Document = Document>(
   })
 }
 
-type Options<Doc extends Document = Document> = ConfigInterface<Doc[] | null>
+export type CollectionSWROptions<
+  Doc extends Document = Document
+> = ConfigInterface<Doc[] | null>
 /**
  * Call a Firestore Collection
  * @template Doc
@@ -222,7 +296,7 @@ export const useCollection = <
   Doc extends Document = Document<Data>
 >(
   path: string | null,
-  query: Ref<Data> & {
+  query: CollectionQueryType<Data> & {
     /**
      * If `true`, sets up a real-time subscription to the Firestore backend.
      *
@@ -239,11 +313,13 @@ export const useCollection = <
      */
     parseDates?: (string | keyof Doc)[]
     /**
-     * Use the `useCollectionGroup` hook instead of this.
+     * If `true`, docs returned in `data` will not include the firestore `__snapshot` field. If `false`, it will include a `__snapshot` field. This lets you access the document snapshot, but makes the document not JSON serializable.
+     *
+     * Default: `true`
      */
-    __unstableCollectionGroup?: boolean
+    ignoreFirestoreDocumentSnapshotField?: boolean
   } = empty.object,
-  options: Options<Doc> = empty.object
+  options: CollectionSWROptions<Doc> = empty.object
 ) => {
   const unsubscribeRef = useRef<ListenerReturnType['unsubscribe'] | null>(null)
 
@@ -258,7 +334,9 @@ export const useCollection = <
     listen = false,
     documentDataConverter,
     parseDates,
-    __unstableCollectionGroup: isCollectionGroup = false,
+    // __unstableCollectionGroup: isCollectionGroup = false,
+    isCollectionGroup,
+    ignoreFirestoreDocumentSnapshotField = true,
   } = query
 
   // if we're listening, the firestore listener handles all revalidation
@@ -291,8 +369,18 @@ export const useCollection = <
         startAt,
         orderBy,
         limit,
+        isCollectionGroup,
       }),
-    [endAt, endBefore, limit, orderBy, startAfter, startAt, where]
+    [
+      endAt,
+      endBefore,
+      isCollectionGroup,
+      limit,
+      orderBy,
+      startAfter,
+      startAt,
+      where,
+    ]
   )
 
   // we move this to a Ref
@@ -300,20 +388,16 @@ export const useCollection = <
   // if we do, then calling mutate() won't be consistent for all
   // collections with the same path & query
   // TODO figure out if this is the right behavior...probably not because of the paths. hm.
-  const isCollectionGroupQuery = useRef(isCollectionGroup)
-  useEffect(() => {
-    isCollectionGroupQuery.current = isCollectionGroup
-  }, [isCollectionGroup])
+  // TODO it's not, move this to the
+  // const isCollectionGroupQuery = useRef(isCollectionGroup)
+  // useEffect(() => {
+  //   isCollectionGroupQuery.current = isCollectionGroup
+  // }, [isCollectionGroup])
 
   const dateParser = useRef(parseDates)
   useEffect(() => {
     dateParser.current = parseDates
   }, [parseDates])
-
-  const documentConverter = useRef(documentDataConverter)
-  useEffect(() => {
-    documentConverter.current = documentDataConverter
-  }, [documentDataConverter])
 
   // we move listen to a Ref
   // why? because we shouldn't have to include "listen" in the key
@@ -323,6 +407,16 @@ export const useCollection = <
   useEffect(() => {
     shouldListen.current = listen
   })
+
+  const shouldIgnoreSnapshot = useRef(ignoreFirestoreDocumentSnapshotField)
+  useEffect(() => {
+    shouldIgnoreSnapshot.current = ignoreFirestoreDocumentSnapshotField
+  }, [ignoreFirestoreDocumentSnapshotField])
+
+  const documentConverter = useRef(documentDataConverter)
+  useEffect(() => {
+    documentConverter.current = documentDataConverter
+  }, [documentDataConverter])
 
   const swr = useSWR<Doc[] | null>(
     // if the path is null, this means we don't want to fetch yet.
@@ -339,47 +433,22 @@ export const useCollection = <
           {
             parseDates: dateParser.current,
             documentDataConverter: documentConverter.current,
+            ignoreFirestoreDocumentSnapshotField: shouldIgnoreSnapshot.current,
           }
         )
         unsubscribeRef.current = unsubscribe
         return initialData
       }
 
-      const query: Ref = JSON.parse(queryString) ?? {}
-      const ref = createRef(path, query, { documentDataConverter })
-      const data: Doc[] = await ref.get().then(querySnapshot => {
-        const array: typeof data = []
-        querySnapshot.forEach(doc => {
-          const docData =
-            doc.data({
-              serverTimestamps: 'estimate',
-            }) ?? empty.object
-          const docToAdd = withDocumentDatesParsed(
-            {
-              ...docData,
-              id: doc.id,
-              exists: doc.exists,
-              hasPendingWrites: doc.metadata.hasPendingWrites,
-            } as any,
-            dateParser.current
-          )
-          // update individual docs in the cache
-          mutateStatic(`${path}/${doc.id}`, docToAdd, false)
-          if (
-            isDev &&
-            // @ts-ignore
-            (docData.exists || docData.id || docData.hasPendingWrites)
-          ) {
-            console.warn(
-              '[use-document] warning: Your document, ',
-              doc.id,
-              ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
-            )
-          }
-          array.push(docToAdd)
-        })
-        return array
-      })
+      const data = await getCollection<Doc>(
+        path,
+        JSON.parse(queryString) as CollectionQueryType<Doc>,
+        {
+          parseDates: dateParser.current,
+          ignoreFirestoreDocumentSnapshotField: shouldIgnoreSnapshot.current,
+          documentDataConverter: documentConverter.current,
+        }
+      )
       return data
     },
     swrOptions
@@ -396,6 +465,7 @@ export const useCollection = <
   // and we call `revalidate` if it changes.
   const mounted = useRef(false)
   useEffect(() => {
+    // TODO should this only happen if listen is false? No, BC swr should revalidate on a change.
     if (mounted.current) revalidateRef.current()
     else mounted.current = true
   }, [listen])
@@ -408,6 +478,8 @@ export const useCollection = <
   })
 
   useEffect(() => {
+    // TODO should this only be for listen, since SWR updates with the others?
+    // also should it go before the useSWR?
     return () => {
       // clean up listener on unmount if it exists
       if (unsubscribeRef.current) {
