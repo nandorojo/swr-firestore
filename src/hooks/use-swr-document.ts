@@ -227,6 +227,7 @@ export const useDocument = <
     refreshWhenOffline = listen ? false : undefined,
     revalidateOnFocus = listen ? false : undefined,
     revalidateOnReconnect = listen ? false : undefined,
+    dedupingInterval = listen ? 0 : undefined,
   } = options
 
   const swrOptions = {
@@ -236,6 +237,7 @@ export const useDocument = <
     refreshWhenOffline,
     revalidateOnFocus,
     revalidateOnReconnect,
+    dedupingInterval,
   }
 
   // we move listen to a Ref

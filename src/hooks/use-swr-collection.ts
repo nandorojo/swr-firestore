@@ -343,6 +343,7 @@ export const useCollection = <
     refreshWhenOffline = listen ? false : undefined,
     revalidateOnFocus = listen ? false : undefined,
     revalidateOnReconnect = listen ? false : undefined,
+    dedupingInterval = listen ? 0 : undefined,
   } = options
 
   const swrOptions = {
@@ -352,6 +353,7 @@ export const useCollection = <
     refreshWhenOffline,
     revalidateOnFocus,
     revalidateOnReconnect,
+    dedupingInterval,
   }
 
   // why not just put this into the ref directly?
