@@ -377,6 +377,8 @@ export default function Paginate() {
   const paginate = async () => {
     if (!data?.length) return
     
+    const ref = fuego.db.collection(collection)
+    
     // get the snapshot of last document we have right now in our query
     const startAfterDocument = data[data.length - 1].__snapshot
 
