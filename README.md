@@ -128,7 +128,7 @@ export default function User() {
   if (error) return <Text>Error!</Text>
   if (!data) return <Text>Loading...</Text>
 
-  return <Text>Name: {user.name}</Text>
+  return <Text>Name: {data.name}</Text>
 }
 ```
 
