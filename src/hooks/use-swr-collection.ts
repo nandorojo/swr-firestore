@@ -495,10 +495,10 @@ export const useCollection = <
    * - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `add` function provided by Firestore.
    */
   const add = useCallback(
-    (data: Data | Data[]) => {
-      if (!path) return null
-
+    async (data: Data | Data[]): Promise<Doc[]> => {
       const dataArray = Array.isArray(data) ? data : [data]
+
+      if (!path || !dataArray.length) return []
 
       const ref = fuego.db.collection(path)
 
@@ -519,14 +519,25 @@ export const useCollection = <
       }
 
       // add to network
-      const batch = fuego.db.batch()
 
-      docsToAdd.forEach(({ id, ...doc }) => {
-        // take the ID out of the document
-        batch.set(ref.doc(id), doc)
-      })
+      try {
+        const batch = fuego.db.batch()
 
-      return batch.commit()
+        docsToAdd.forEach(({ id, ...doc }) => {
+          // take the ID out of the document
+          batch.set(ref.doc(id), doc)
+        })
+
+        await batch.commit()
+      } catch (err) {
+        // handle offline batch error
+        await docsToAdd.reduce(async (promise, { id, ...doc }) => {
+          await promise
+          return ref.doc(id).set(doc)
+        }, Promise.resolve())
+      }
+
+      return docsToAdd
     },
     [listen, mutate, path]
   )
