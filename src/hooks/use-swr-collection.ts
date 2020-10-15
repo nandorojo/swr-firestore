@@ -5,8 +5,6 @@ import { useRef, useEffect, useMemo, useCallback } from 'react'
 import { empty } from '../helpers/empty'
 import { collectionCache } from '../classes/Cache'
 
-// type Document<T = {}> = T & { id: string }
-
 import {
   FieldPath,
   OrderByDirection,
@@ -15,7 +13,7 @@ import {
 } from '@firebase/firestore-types'
 import { isDev } from '../helpers/is-dev'
 import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
-import { Document } from '../types'
+import { Converter, Document } from '../types'
 
 // here we get the "key" from our data, to add intellisense for any "orderBy" in the queries and such.
 type OrderByArray<Doc extends object = {}, Key = keyof Doc> = [
@@ -82,6 +80,7 @@ export const getCollection = async <Doc extends Document = Document>(
   {
     parseDates,
     ignoreFirestoreDocumentSnapshotField,
+    documentDataConverter,
   }: {
     parseDates?: (string | keyof Doc)[]
     /**
@@ -90,9 +89,10 @@ export const getCollection = async <Doc extends Document = Document>(
      * Default: `false`
      */
     ignoreFirestoreDocumentSnapshotField?: boolean
+    documentDataConverter?: Converter<Doc>
   } = empty.object
 ) => {
-  const ref = createFirestoreRef(path, query)
+  const ref = createFirestoreRef(path, query, documentDataConverter)
   const data: Doc[] = await ref.get().then(querySnapshot => {
     const array: typeof data = []
     querySnapshot.forEach(doc => {
@@ -141,7 +141,8 @@ const createFirestoreRef = <Doc extends object = {}>(
     startAfter,
     endBefore,
     isCollectionGroup,
-  }: CollectionQueryType<Doc>
+  }: CollectionQueryType<Doc>,
+  documentDataConverter?: Converter<Doc>
 ) =>
   // { isCollectionGroup = false }: { isCollectionGroup?: boolean } = empty.object
   {
@@ -187,23 +188,21 @@ const createFirestoreRef = <Doc extends object = {}>(
     if (startAt) {
       ref = ref.startAt(startAt)
     }
-
     if (endAt) {
       ref = ref.endAt(endAt)
     }
-
     if (startAfter) {
       ref = ref.startAfter(startAfter)
     }
-
     if (endBefore) {
       ref = ref.endBefore(endBefore)
     }
-
     if (limit) {
       ref = ref.limit(limit)
     }
-
+    if (documentDataConverter) {
+      ref = ref.withConverter(documentDataConverter)
+    }
     return ref
   }
 
@@ -218,6 +217,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
   {
     parseDates,
     ignoreFirestoreDocumentSnapshotField = true,
+    documentDataConverter,
   }: // isCollectionGroup = false,
   {
     parseDates?: (string | keyof Doc)[]
@@ -227,11 +227,12 @@ const createListenerAsync = async <Doc extends Document = Document>(
      * Default: `true`
      */
     ignoreFirestoreDocumentSnapshotField?: boolean
+    documentDataConverter?: Converter<Doc>
   }
 ): Promise<ListenerReturnType<Doc>> => {
   return new Promise(resolve => {
     const query: CollectionQueryType = JSON.parse(queryString) ?? {}
-    const ref = createFirestoreRef(path, query)
+    const ref = createFirestoreRef(path, query, documentDataConverter)
     const unsubscribe = ref.onSnapshot(
       { includeMetadataChanges: true },
       querySnapshot => {
@@ -302,6 +303,7 @@ export const useCollection = <
      * Default: `false`
      */
     listen?: boolean
+    documentDataConverter?: Converter<Doc>
     /**
      * An array of key strings that indicate where there will be dates in the document.
      *
@@ -330,6 +332,7 @@ export const useCollection = <
     orderBy,
     limit,
     listen = false,
+    documentDataConverter,
     parseDates,
     // __unstableCollectionGroup: isCollectionGroup = false,
     isCollectionGroup,
@@ -410,6 +413,11 @@ export const useCollection = <
     shouldIgnoreSnapshot.current = ignoreFirestoreDocumentSnapshotField
   }, [ignoreFirestoreDocumentSnapshotField])
 
+  const documentConverter = useRef(documentDataConverter)
+  useEffect(() => {
+    documentConverter.current = documentDataConverter
+  }, [documentDataConverter])
+
   const swr = useSWR<Doc[] | null>(
     // if the path is null, this means we don't want to fetch yet.
     path === null ? null : [path, memoQueryString],
@@ -424,6 +432,7 @@ export const useCollection = <
           queryString,
           {
             parseDates: dateParser.current,
+            documentDataConverter: documentConverter.current,
             ignoreFirestoreDocumentSnapshotField: shouldIgnoreSnapshot.current,
           }
         )
@@ -437,6 +446,7 @@ export const useCollection = <
         {
           parseDates: dateParser.current,
           ignoreFirestoreDocumentSnapshotField: shouldIgnoreSnapshot.current,
+          documentDataConverter: documentConverter.current,
         }
       )
       return data
@@ -521,12 +531,16 @@ export const useCollection = <
 
       docsToAdd.forEach(({ id, ...doc }) => {
         // take the ID out of the document
-        batch.set(ref.doc(id), doc)
+        let docRef = ref.doc(id)
+        if (documentDataConverter) {
+          docRef = docRef.withConverter(documentDataConverter)
+        }
+        batch.set(docRef, doc)
       })
 
       return batch.commit()
     },
-    [listen, mutate, path]
+    [listen, mutate, path, documentDataConverter]
   )
 
   return {

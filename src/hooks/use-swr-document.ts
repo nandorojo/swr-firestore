@@ -3,7 +3,7 @@ import { SetOptions, FieldValue } from '@firebase/firestore-types'
 import { fuego } from '../context'
 import { useRef, useEffect, useCallback } from 'react'
 import { empty } from '../helpers/empty'
-import { Document } from '../types/Document'
+import { Document, Converter } from '../types'
 import { collectionCache } from '../classes/Cache'
 import { isDev } from '../helpers/is-dev'
 import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
@@ -40,6 +40,7 @@ type Options<Doc extends Document = Document> = {
    * Default: `true`
    */
   ignoreFirestoreDocumentSnapshotField?: boolean
+  documentDataConverter?: Converter<Doc>
 } & ConfigInterface<Doc | null>
 
 type ListenerReturnType<Doc extends Document = Document> = {
@@ -52,6 +53,7 @@ export const getDocument = async <Doc extends Document = Document>(
   {
     parseDates,
     ignoreFirestoreDocumentSnapshotField = true,
+    documentDataConverter,
   }: {
     parseDates?: (
       | string
@@ -65,38 +67,40 @@ export const getDocument = async <Doc extends Document = Document>(
      * Default: `true`
      */
     ignoreFirestoreDocumentSnapshotField?: boolean
+    documentDataConverter?: Converter<Doc>
   } = empty.object
 ) => {
-  const data = await fuego.db
-    .doc(path)
-    .get()
-    .then(doc => {
-      const docData =
-        doc.data({
-          serverTimestamps: 'estimate',
-        }) ?? empty.object
-      if (
-        isDev &&
-        // @ts-ignore
-        (docData.exists || docData.id || docData.hasPendingWrites)
-      ) {
-        console.warn(
-          '[get-document] warning: Your document, ',
-          doc.id,
-          ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
-        )
-      }
-      return withDocumentDatesParsed(
-        ({
-          ...docData,
-          id: doc.id,
-          exists: doc.exists,
-          hasPendingWrites: doc.metadata.hasPendingWrites,
-          __snapshot: ignoreFirestoreDocumentSnapshotField ? undefined : doc,
-        } as unknown) as Doc,
-        parseDates
+  let docRef = fuego.db.doc(path)
+  if (documentDataConverter) {
+    docRef = docRef.withConverter(documentDataConverter)
+  }
+  const data = await docRef.get().then(doc => {
+    const docData =
+      doc.data({
+        serverTimestamps: 'estimate',
+      }) ?? empty.object
+    if (
+      isDev &&
+      // @ts-ignore
+      (docData.exists || docData.id || docData.hasPendingWrites)
+    ) {
+      console.warn(
+        '[get-document] warning: Your document, ',
+        doc.id,
+        ' is using one of the following reserved fields: [exists, id, hasPendingWrites]. These fields are reserved. Please remove them from your documents.'
       )
-    })
+    }
+    return withDocumentDatesParsed(
+      ({
+        ...docData,
+        id: doc.id,
+        exists: doc.exists,
+        hasPendingWrites: doc.metadata.hasPendingWrites,
+        __snapshot: ignoreFirestoreDocumentSnapshotField ? undefined : doc,
+      } as unknown) as Doc,
+      parseDates
+    )
+  })
 
   // update the document in any collections listening to the same document
   let collection: string | string[] = path.split(`/${data.id}`)
@@ -132,6 +136,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
   {
     parseDates,
     ignoreFirestoreDocumentSnapshotField = true,
+    documentDataConverter,
   }: {
     parseDates?: (
       | string
@@ -143,10 +148,15 @@ const createListenerAsync = async <Doc extends Document = Document>(
      * Default: `false`
      */
     ignoreFirestoreDocumentSnapshotField?: boolean
+    documentDataConverter?: Converter<Doc>
   } = {}
 ): Promise<ListenerReturnType<Doc>> => {
   return await new Promise(resolve => {
-    const unsubscribe = fuego.db.doc(path).onSnapshot(doc => {
+    let docRef = fuego.db.doc(path)
+    if (documentDataConverter) {
+      docRef = docRef.withConverter(documentDataConverter)
+    }
+    const unsubscribe = docRef.onSnapshot(doc => {
       const docData = doc.data() ?? empty.object
       const data = withDocumentDatesParsed<Doc>(
         ({
@@ -232,6 +242,7 @@ export const useDocument = <
     refreshWhenOffline = listen ? false : undefined,
     revalidateOnFocus = listen ? false : undefined,
     revalidateOnReconnect = listen ? false : undefined,
+    documentDataConverter,
   } = options
 
   const swrOptions = {
@@ -262,6 +273,11 @@ export const useDocument = <
     shouldIgnoreSnapshot.current = ignoreFirestoreDocumentSnapshotField
   }, [ignoreFirestoreDocumentSnapshotField])
 
+  const documentConverter = useRef(documentDataConverter)
+  useEffect(() => {
+    documentConverter.current = documentDataConverter
+  }, [documentDataConverter])
+
   const swr = useSWR<Doc | null>(
     path,
     async (path: string) => {
@@ -275,14 +291,17 @@ export const useDocument = <
           {
             parseDates: datesToParse.current,
             ignoreFirestoreDocumentSnapshotField: shouldIgnoreSnapshot.current,
+            documentDataConverter: documentConverter.current,
           }
         )
         unsubscribeRef.current = unsubscribe
         return initialData
       }
+
       const data = await getDocument<Doc>(path, {
         parseDates: datesToParse.current,
         ignoreFirestoreDocumentSnapshotField: shouldIgnoreSnapshot.current,
+        documentDataConverter: documentConverter.current,
       })
       return data
     },
@@ -347,9 +366,12 @@ export const useDocument = <
         })
       }
       if (!path) return null
-      return fuego.db.doc(path).set(data, options)
+      let docRef = fuego.db.doc(path)
+      if (documentDataConverter)
+        docRef = docRef.withConverter(documentDataConverter)
+      return docRef.set(data, options)
     },
-    [path, listen, connectedMutate]
+    [path, listen, connectedMutate, documentDataConverter]
   )
 
   /**
@@ -369,9 +391,12 @@ export const useDocument = <
         })
       }
       if (!path) return null
-      return fuego.db.doc(path).update(data)
+      let docRef = fuego.db.doc(path)
+      if (documentDataConverter)
+        docRef = docRef.withConverter(documentDataConverter)
+      return docRef.update(data)
     },
-    [listen, path, connectedMutate]
+    [listen, path, connectedMutate, documentDataConverter]
   )
 
   const connectedDelete = useCallback(() => {
