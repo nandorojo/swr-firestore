@@ -326,13 +326,12 @@ const { data } = useDocument('users/fernando', {
   ignoreFirestoreDocumentSnapshotField: false, // default: true
 })
 
-if (data) { 
+if (data) {
   const id = data?.__snapshot.id
 }
 ```
 
 You can do the same for `useCollection` and `useCollectionGroup`. The snapshot will be on each item in the `data` array.
-
 
 ### Paginate a collection:
 
@@ -353,7 +352,7 @@ export default function Paginate() {
       limit,
       orderBy,
       // 🚨 this is required to get access to the snapshot!
-      ignoreFirestoreDocumentSnapshotField: false
+      ignoreFirestoreDocumentSnapshotField: false,
     },
     {
       // this lets us update the local cache + paginate without interruptions
@@ -366,9 +365,9 @@ export default function Paginate() {
 
   const paginate = async () => {
     if (!data?.length) return
-    
+
     const ref = fuego.db.collection(collection)
-    
+
     // get the snapshot of last document we have right now in our query
     const startAfterDocument = data[data.length - 1].__snapshot
 
@@ -430,6 +429,7 @@ const { data, error } = useDocument(`users/${user.id}`, { listen: true })
 import {
   useDocument,
   useCollection,
+  useCollectionGroup, // 👋 new!
   revalidateDocument,
   revalidateCollection,
   // these all update BOTH Firestore & the local cache ⚡️
@@ -499,6 +499,9 @@ Returns a dictionary with the following values:
   - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `set` function.
 - `deleteDocument()`: Extends the Firestore document [`delete` function](https://firebase.google.com/docs/firestore/manage-data/delete-data).
   - It also updates the local cache using SWR's `mutate` by deleting your document from this query and all collection queries that have fetched this document. This will prove highly convenient over the regular `delete` function from Firestore.
+- `unsubscribe()` A function that, when called, unsubscribes the Firestore listener.
+  - The function can be null, so make sure to check that it exists before calling it.
+  - **Note**: This is not necessary to use. `useDocument` already unmounts the listener for you. This is only intended if you want to unsubscribe on your own.
 
 The dictionary also includes the following [from `useSWR`](https://github.com/zeit/swr#return-values):
 
@@ -636,6 +639,17 @@ The returned dictionary also includes the following [from `useSWR`](https://gith
 - `error`: error thrown by fetcher (or undefined)
 - `isValidating`: if there's a request or revalidation loading
 - `mutate(data?, shouldRevalidate?)`: function to mutate the cached data
+- `unsubscribe()` A function that, when called, unsubscribes the Firestore listener.
+  - The function can be null, so make sure to check that it exists before calling it.
+  - **Note**: This is not necessary to use. `useCollection` already unmounts the listener for you. This is only intended if you want to unsubscribe on your own.
+
+## `useCollectionGroup(path, query, options)`
+
+Follows an identical API as `useCollection`, except that it leverages Firestore's collection group query for merging subcollections with the same name.
+
+To see how to use it, follow the instructions from [`useCollection`](#useCollection).
+
+See the Firestore [docs on collecttion groups](https://firebase.google.com/docs/firestore/query-data/queries) to learn more.
 
 ## `set(path, data, SetOptions?)`
 

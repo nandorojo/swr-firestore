@@ -19,6 +19,27 @@ export const useExperimentalCollectionGroup = <
   query: Omit<CollectionQueryType<Data>, 'isCollectionGroup'>,
   swrOptions: CollectionSWROptions<Doc>
 ) => {
+  console.warn(
+    '[swr-firestore] useExperimentalCollectionGroup is deprecated. Switch to useCollectionGroup.'
+  )
+  return useCollection<Data>(
+    collection,
+    {
+      ...query,
+      isCollectionGroup: true,
+    },
+    swrOptions as any
+  )
+}
+
+export const useCollectionGroup = <
+  Data extends object = {},
+  Doc extends Document = Document<Data>
+>(
+  collection: string | null,
+  query: Omit<CollectionQueryType<Data>, 'isCollectionGroup'>,
+  swrOptions: CollectionSWROptions<Doc>
+) => {
   return useCollection<Data>(
     collection,
     {
