@@ -539,5 +539,13 @@ export const useCollection = <
     error,
     add,
     loading: !data && !error,
+    /**
+     * A function that, when called, unsubscribes the Firestore listener.
+     *
+     * The function can be null, so make sure to check that it exists before calling it.
+     *
+     * Note: This is not necessary to use. `useCollection` already unmounts the listener for you. This is only intended if you want to unsubscribe on your own.
+     */
+    unsubscribe: unsubscribeRef.current,
   }
 }

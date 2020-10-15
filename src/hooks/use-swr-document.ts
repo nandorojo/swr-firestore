@@ -1,19 +1,15 @@
 import useSWR, { mutate, ConfigInterface } from 'swr'
-import { SetOptions, FieldValue } from '@firebase/firestore-types'
+import type { SetOptions, FieldValue } from '@firebase/firestore-types'
 import { fuego } from '../context'
 import { useRef, useEffect, useCallback } from 'react'
 import { empty } from '../helpers/empty'
-import { Document } from '../types/Document'
+import { AllowType, Document } from '../types/Document'
 import { collectionCache } from '../classes/Cache'
 import { isDev } from '../helpers/is-dev'
 import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
 import { deleteDocument } from './static-mutations'
 
-/** Allow another type for all object values */
-type AllowType<O extends object, Allowed> = {
-  [K in keyof O]: O[K] | Allowed
-}
-
+ 
 type Options<Doc extends Document = Document> = {
   /**
    * If `true`, sets up a real-time subscription to the Firestore backend.
@@ -390,6 +386,14 @@ export const useDocument = <
     update,
     loading: !data && !error,
     deleteDocument: connectedDelete,
+    /**
+     * A function that, when called, unsubscribes the Firestore listener.
+     *
+     * The function can be null, so make sure to check that it exists before calling it.
+     *
+     * **Note**: This is not necessary to use. `useDocument` already unmounts the listener for you. This is only intended if you want to unsubscribe on your own.
+     */
+    unsubscribe: unsubscribeRef.current
   }
 }
 
