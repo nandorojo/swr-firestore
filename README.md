@@ -44,16 +44,6 @@ _"With SWR, components will get a stream of data updates constantly and automati
 - Suspense mode
 - Minimal API
 
-## Sponsor / Shameless plug: Doorman
-
-Besides maintaining this project, I'm currently working on [**Doorman**](https://doorman.cool) – Firebase phone authentication for React Native apps. It comes with fully-baked & customizable UI components, stateful auth hooks, and more.
-
-Even if you don't sign up for Doorman, the library (`react-doorman` or `react-native-doorman`) is free, and has many useful hooks for Firebase auth.
-
-- [Doorman Documentation](https://docs.doorman.cool)
-- [Doorman Website](https://doorman.cool)
-- [Doorman Sign Up](https://doorman.cool)
-
 ## Installation
 
 ```sh
@@ -128,7 +118,7 @@ export default function User() {
   if (error) return <Text>Error!</Text>
   if (!data) return <Text>Loading...</Text>
 
-  return <Text>Name: {user.name}</Text>
+  return <Text>Name: {data.name}</Text>
 }
 ```
 
@@ -327,6 +317,23 @@ if (data) {
 
 For more explanation on the dates, see [issue #4](https://github.com/nandorojo/swr-firestore/issues/4).
 
+### Access a document's Firestore snapshot
+
+If you set `ignoreFirestoreDocumentSnapshotField` to `false`, you can access the `__snapshot` field.
+
+```js
+const { data } = useDocument('users/fernando', {
+  ignoreFirestoreDocumentSnapshotField: false, // default: true
+})
+
+if (data) { 
+  const id = data?.__snapshot.id
+}
+```
+
+You can do the same for `useCollection` and `useCollectionGroup`. The snapshot will be on each item in the `data` array.
+
+
 ### Paginate a collection:
 
 Video [here](https://imgur.com/a/o9AlI4N).
@@ -345,6 +352,8 @@ export default function Paginate() {
     {
       limit,
       orderBy,
+      // 🚨 this is required to get access to the snapshot!
+      ignoreFirestoreDocumentSnapshotField: false
     },
     {
       // this lets us update the local cache + paginate without interruptions
@@ -357,12 +366,11 @@ export default function Paginate() {
 
   const paginate = async () => {
     if (!data?.length) return
-
+    
     const ref = fuego.db.collection(collection)
-
-    // get the last document in our current query
-    // ideally we could pass just a doc ID, but firestore requires the doc snapshot
-    const startAfterDocument = await ref.doc(data[data.length - 1].id).get()
+    
+    // get the snapshot of last document we have right now in our query
+    const startAfterDocument = data[data.length - 1].__snapshot
 
     // get more documents, after the most recent one we have
     const moreDocs = await ref
