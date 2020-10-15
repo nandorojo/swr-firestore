@@ -452,6 +452,7 @@ const {
   error,
   isValidating,
   mutate,
+  unsubscribe
 } = useDocument(path, options)
 ```
 
@@ -513,7 +514,7 @@ The dictionary also includes the following [from `useSWR`](https://github.com/ze
 ## `useCollection(path, query, options)`
 
 ```js
-const { data, add, error, isValidating, mutate } = useCollection(
+const { data, add, error, isValidating, mutate, unsubscribe } = useCollection(
   path,
   query,
   options
