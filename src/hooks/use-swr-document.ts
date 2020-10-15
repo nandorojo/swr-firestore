@@ -1,5 +1,5 @@
 import useSWR, { mutate, ConfigInterface } from 'swr'
-import { SetOptions } from '@firebase/firestore-types'
+import { SetOptions, FieldValue } from '@firebase/firestore-types'
 import { fuego } from '../context'
 import { useRef, useEffect, useCallback } from 'react'
 import { empty } from '../helpers/empty'
@@ -8,6 +8,11 @@ import { collectionCache } from '../classes/Cache'
 import { isDev } from '../helpers/is-dev'
 import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
 import { deleteDocument } from './static-mutations'
+
+/** Allow another type for all object values */
+type AllowType<O extends object, Allowed> = {
+  [K in keyof O]: O[K] | Allowed
+}
 
 type Options<Doc extends Document = Document> = {
   /**
@@ -327,7 +332,7 @@ export const useDocument = <
    * - The second argument is the same as the second argument for [Firestore `set`](https://firebase.google.com/docs/firestore/manage-data/add-data#set_a_document).
    */
   const set = useCallback(
-    (data: Partial<Data>, options?: SetOptions) => {
+    (data: Partial<AllowType<Data, FieldValue>>, options?: SetOptions) => {
       if (!listen) {
         // we only update the local cache if we don't have a listener set up
         // Why? firestore handles this for us for listeners.
@@ -352,7 +357,7 @@ export const useDocument = <
    * - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `set` function.
    */
   const update = useCallback(
-    (data: Partial<Data>) => {
+    (data: Partial<AllowType<Data, FieldValue>>) => {
       if (!listen) {
         // we only update the local cache if we don't have a listener set up
         // @ts-ignore
