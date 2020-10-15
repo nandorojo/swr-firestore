@@ -20,6 +20,7 @@ You can now fetch, add, and mutate Firestore data with zero boilerplate.
 - Works with both **React** and **React Native**.
 - Offline mode with Expo [(without detaching!)](https://github.com/nandorojo/expo-firestore-offline-persistence/blob/master/README.md#usage-with-nandorojoswr-firestore)
 - Blazing fast
+- Query collection groups (**new** in `0.14.x`!)
 - `set`, `update`, and `add` update your global cache, instantly
 - TypeScript-ready [(see docs)](#typescript-support)
 - Realtime subscriptions [(example)](#simple-examples)
