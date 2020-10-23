@@ -54,7 +54,7 @@
     "react": "~16.9.0",
     "react-native": "~0.61.5",
     "release-it": "^12.6.3",
-    "typescript": "^3.7.5"
+    "typescript": "^4.1.0-dev.20201023"
   },
   "peerDependencies": {
     "react": "*"
