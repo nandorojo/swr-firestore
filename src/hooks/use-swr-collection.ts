@@ -16,24 +16,24 @@ import {
 import { isDev } from '../helpers/is-dev'
 import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
 import { Document } from '../types'
-import { ObjectPath } from '../types/object-path'
+
+type KeyHack = string & {} // hack to also allow strings
 
 // here we get the "key" from our data, to add intellisense for any "orderBy" in the queries and such.
 type OrderByArray<Doc extends object = {}, Key = keyof Doc> = [
-  // Key | FieldPath,
-  ObjectPath<Doc> | Key,
+  Key | FieldPath | KeyHack,
   OrderByDirection
 ]
 type OrderByItem<Doc extends object = {}, Key = keyof Doc> =
   | OrderByArray<Doc>
   | Key
+  | KeyHack
 type OrderByType<Doc extends object = {}> =
   | OrderByItem<Doc>
   | OrderByArray<Doc>[]
 
 type WhereItem<Doc extends object = {}, Key = keyof Doc> = [
-  // Key | FieldPath,
-  ObjectPath<Doc> | Key,
+  Key | FieldPath | KeyHack,
   WhereFilterOp,
   unknown
 ]
