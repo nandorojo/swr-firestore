@@ -46,6 +46,10 @@ _"With SWR, components will get a stream of data updates constantly and automati
 - Suspense mode
 - Minimal API
 
+## ⭐️
+
+If you like this library, give it star and let me know on [Twitter](https://twitter.com/fernandotherojo)!
+
 ## Installation
 
 ```sh
