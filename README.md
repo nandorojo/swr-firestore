@@ -557,7 +557,7 @@ Can be an array, or an array of arrays.
 Each array follows this outline: `['key', 'comparison-operator', 'value']`. This is pulled directly from Firestore's [where pattern](https://firebase.google.com/docs/firestore/query-data/queries#query_operators).
 
 ```js
-// get all users whoses name are Fernando
+// get all users whose names are Fernando
 useCollection('users', {
   where: ['name', '==', 'Fernando'],
 })
