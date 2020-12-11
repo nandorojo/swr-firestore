@@ -159,7 +159,6 @@ const createFirestoreRef = <Doc extends object = {}>(
     }
 
     if (where) {
-      console.log('createFirestoreRef, WHERE', where)
       if (Serializer.multipleConditions(where)) {
         where.forEach(w => {
           const value = w[2]
