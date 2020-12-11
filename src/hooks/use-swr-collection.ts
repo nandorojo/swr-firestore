@@ -159,7 +159,7 @@ const createFirestoreRef = <Doc extends object = {}>(
     }
 
     if (where) {
-      if (Serializer.multipleConditions(where)) {
+      if (Serializer.multipleConditions<Doc>(where)) {
         where.forEach(w => {
           const value = w[2]
           if (value instanceof Date)
@@ -236,8 +236,9 @@ const createListenerAsync = async <Doc extends Document = Document>(
   }
 ): Promise<ListenerReturnType<Doc>> => {
   return new Promise(resolve => {
-    const query: CollectionQueryType =
-      Serializer.deserializeQuery(queryString) ?? {}
+    const query: CollectionQueryType<Doc> =
+      Serializer.deserializeQuery<Doc>(queryString) ?? {}
+
     const ref = createFirestoreRef(path, query)
     const unsubscribe = ref.onSnapshot(
       { includeMetadataChanges: true },
@@ -367,7 +368,7 @@ export const useCollection = <
   // so that we can use the useEffect down below that triggers revalidate()
   const memoQueryString = useMemo(
     () =>
-      Serializer.serializeQuery({
+      Serializer.serializeQuery<Data>({
         endAt,
         endBefore,
         isCollectionGroup,
