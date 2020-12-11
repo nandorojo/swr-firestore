@@ -35,6 +35,7 @@ describe('serializing collection query', () => {
       where: [
         ['date', '>', new Date('2010-01-01')],
         ['date', '<', new Date('2020-01-01')],
+        ['name', '==', 'Fernando'],
       ],
       orderBy: 'name',
       limit: 1,
@@ -42,7 +43,7 @@ describe('serializing collection query', () => {
 
     const serialized = Serializer.serializeQuery(query)
     expect(serialized).toEqual(
-      '{"where":[["date",">","2010-01-01T00:00:00.000Z",{"type":"date"}],["date","<","2020-01-01T00:00:00.000Z",{"type":"date"}]],"orderBy":"name","limit":1}'
+      '{"where":[["date",">","2010-01-01T00:00:00.000Z",{"type":"date"}],["date","<","2020-01-01T00:00:00.000Z",{"type":"date"}],["name","==","Fernando"]],"orderBy":"name","limit":1}'
     )
 
     const deserialized = Serializer.deserializeQuery(serialized)
@@ -51,6 +52,7 @@ describe('serializing collection query', () => {
       where: [
         ['date', '>', new Date('2010-01-01'), { type: 'date' }],
         ['date', '<', new Date('2020-01-01'), { type: 'date' }],
+        ['name', '==', 'Fernando'],
       ],
     })
   })
