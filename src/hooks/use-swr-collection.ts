@@ -16,6 +16,7 @@ import {
 import { isDev } from '../helpers/is-dev'
 import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
 import { Document } from '../types'
+import { Serializer, SerializerOptions } from '../helpers/serializer'
 
 type KeyHack = string & {} // hack to also allow strings
 
@@ -32,13 +33,16 @@ type OrderByType<Doc extends object = {}> =
   | OrderByItem<Doc>
   | OrderByArray<Doc>[]
 
-type WhereItem<Doc extends object = {}, Key = keyof Doc> = [
+export type WhereItem<Doc extends object = {}, Key = keyof Doc> = [
   Key | FieldPath | KeyHack,
   WhereFilterOp,
-  unknown
+  unknown,
+  SerializerOptions?
 ]
-type WhereArray<Doc extends object = {}> = WhereItem<Doc>[]
-type WhereType<Doc extends object = {}> = WhereItem<Doc> | WhereArray<Doc>
+export type WhereArray<Doc extends object = {}> = WhereItem<Doc>[]
+export type WhereType<Doc extends object = {}> =
+  | WhereItem<Doc>
+  | WhereArray<Doc>
 
 export type CollectionQueryType<Doc extends object = {}> = {
   limit?: number
@@ -155,12 +159,12 @@ const createFirestoreRef = <Doc extends object = {}>(
     }
 
     if (where) {
-      function multipleConditions(w: WhereType<Doc>): w is WhereArray<Doc> {
-        return !!(w as WhereArray) && Array.isArray(w[0])
-      }
-      if (multipleConditions(where)) {
+      console.log('createFirestoreRef, WHERE', where)
+      if (Serializer.multipleConditions(where)) {
         where.forEach(w => {
-          ref = ref.where(w[0] as string | FieldPath, w[1], w[2])
+          const value = w[2]
+          if (value instanceof Date)
+            ref = ref.where(w[0] as string | FieldPath, w[1], w[2])
         })
       } else if (typeof where[0] === 'string' && typeof where[1] === 'string') {
         ref = ref.where(where[0], where[1], where[2])
@@ -233,7 +237,8 @@ const createListenerAsync = async <Doc extends Document = Document>(
   }
 ): Promise<ListenerReturnType<Doc>> => {
   return new Promise(resolve => {
-    const query: CollectionQueryType = JSON.parse(queryString) ?? {}
+    const query: CollectionQueryType =
+      Serializer.deserializeQuery(queryString) ?? {}
     const ref = createFirestoreRef(path, query)
     const unsubscribe = ref.onSnapshot(
       { includeMetadataChanges: true },
@@ -363,15 +368,15 @@ export const useCollection = <
   // so that we can use the useEffect down below that triggers revalidate()
   const memoQueryString = useMemo(
     () =>
-      JSON.stringify({
-        where,
+      Serializer.serializeQuery({
         endAt,
         endBefore,
+        isCollectionGroup,
+        limit,
+        orderBy,
         startAfter,
         startAt,
-        orderBy,
-        limit,
-        isCollectionGroup,
+        where,
       }),
     [
       endAt,
@@ -438,7 +443,7 @@ export const useCollection = <
 
       const data = await getCollection<Doc>(
         path,
-        JSON.parse(queryString) as CollectionQueryType<Doc>,
+        Serializer.deserializeQuery(queryString),
         {
           parseDates: dateParser.current,
           ignoreFirestoreDocumentSnapshotField: shouldIgnoreSnapshot.current,
