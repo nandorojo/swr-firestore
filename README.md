@@ -385,7 +385,7 @@ export default function Paginate() {
       .get()
       .then(d => {
         const docs = []
-        d.docs.forEach(doc => docs.push({ ...doc.data(), id: doc.id }))
+        d.docs.forEach(doc => docs.push({ ...doc.data(), id: doc.id, __snapshot: doc }))
         return docs
       })
 
