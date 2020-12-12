@@ -1,8 +1,10 @@
-import { CollectionQueryType, WhereArray, WhereItem, WhereType } from '..'
-
-export type SerializerOptions = {
-  type: 'date'
-}
+import * as firebase from 'firebase/app'
+import {
+  CollectionQueryType,
+  WhereArray,
+  WhereItem,
+  WhereType,
+} from '../types/Query'
 
 export class Serializer {
   // Helper for where clauses
@@ -22,6 +24,14 @@ export class Serializer {
     // Date: Inject serializer options if not specified
     if (where[2] instanceof Date && !where[3]) {
       return [...where.slice(0, 3), { type: 'date' }] as WhereItem<Doc>
+    }
+
+    if (where[2] instanceof firebase.firestore.DocumentReference && !where[3]) {
+      return [
+        ...where.slice(0, 2),
+        where[2].path,
+        { type: 'ref' },
+      ] as WhereItem<Doc>
     }
 
     return where
@@ -51,6 +61,14 @@ export class Serializer {
       return [...where.slice(0, 2), new Date(where[2]), where[3]] as WhereItem<
         Doc
       >
+    }
+
+    if (where[3]?.type === 'ref' && typeof where[2] === 'string') {
+      return [
+        ...where.slice(0, 2),
+        firebase.firestore().doc(where[2]),
+        where[3],
+      ] as WhereItem<Doc>
     }
 
     return where

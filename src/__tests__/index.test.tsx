@@ -1,5 +1,6 @@
+import firebase from 'firebase'
+import { CollectionQueryType } from 'src/types/Query'
 import { Serializer } from '../helpers/serializer'
-import { CollectionQueryType } from '../hooks'
 
 it.todo('write a test')
 
@@ -10,8 +11,13 @@ interface User {
   joinedAt: Date
 }
 
+// This is only to be able to create document references, no querying is actually done
+firebase.initializeApp({
+  projectId: '123',
+})
+
 describe('serializing collection query', () => {
-  test('single where clause', () => {
+  test('single where clause with date', () => {
     const query: CollectionQueryType<User> = {
       where: ['date', '>', new Date('2020-01-01')],
       orderBy: 'name',
@@ -30,7 +36,7 @@ describe('serializing collection query', () => {
     })
   })
 
-  test('multiple where clauses', () => {
+  test('multiple where clauses with dates', () => {
     const query: CollectionQueryType<User> = {
       where: [
         ['date', '>', new Date('2010-01-01')],
@@ -53,6 +59,34 @@ describe('serializing collection query', () => {
         ['date', '>', new Date('2010-01-01'), { type: 'date' }],
         ['date', '<', new Date('2020-01-01'), { type: 'date' }],
         ['name', '==', 'Fernando'],
+      ],
+    })
+  })
+
+  test('single where clause with ref', () => {
+    const query: CollectionQueryType<User> = {
+      where: [
+        'user',
+        '==',
+        firebase.firestore().doc('users/dqKiW6iFUyFmXN1aVBQ6'),
+      ],
+      orderBy: 'name',
+      limit: 1,
+    }
+
+    const serialized = Serializer.serializeQuery(query)
+    expect(serialized).toEqual(
+      '{"where":["user","==","users/dqKiW6iFUyFmXN1aVBQ6",{"type":"ref"}],"orderBy":"name","limit":1}'
+    )
+
+    const deserialized = Serializer.deserializeQuery(serialized)
+    expect(deserialized).toEqual({
+      ...query,
+      where: [
+        'user',
+        '==',
+        firebase.firestore().doc('users/dqKiW6iFUyFmXN1aVBQ6'),
+        { type: 'ref' },
       ],
     })
   })
