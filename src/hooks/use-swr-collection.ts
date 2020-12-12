@@ -93,9 +93,7 @@ const createFirestoreRef = <Doc extends object = {}>(
     if (where) {
       if (Serializer.multipleConditions<Doc>(where)) {
         where.forEach(w => {
-          const value = w[2]
-          if (value instanceof Date)
-            ref = ref.where(w[0] as string | FieldPath, w[1], w[2])
+          ref = ref.where(w[0] as string | FieldPath, w[1], w[2])
         })
       } else if (typeof where[0] === 'string' && typeof where[1] === 'string') {
         ref = ref.where(where[0], where[1], where[2])
@@ -416,6 +414,10 @@ export const useCollection = <
     // TODO should this only be for listen, since SWR updates with the others?
     // also should it go before the useSWR?
     return () => {
+      const query = Serializer.deserializeQuery(memoQueryString, fuego)
+      if (query) {
+        Serializer.cleanQuery(query, fuego)
+      }
       // clean up listener on unmount if it exists
       if (unsubscribeRef.current) {
         unsubscribeRef.current()

@@ -1,4 +1,5 @@
 import {
+  DocumentSnapshot,
   FieldPath,
   OrderByDirection,
   WhereFilterOp,
@@ -37,34 +38,17 @@ export type CollectionQueryType<Doc extends object = {}> = {
   where?: WhereType<Doc>
   isCollectionGroup?: boolean
 
-  /**
-   * For now, this can only be a number, since it has to be JSON serializable.
-   *
-   * **TODO** allow DocumentSnapshot here too. This will probably be used with a useStaticCollection hook in the future.
-   */
-  startAt?: number
-  /**
-   * For now, this can only be a number, since it has to be JSON serializable.
-   *
-   * **TODO** allow DocumentSnapshot here too. This will probably be used with a useStaticCollection hook in the future.
-   */
-  endAt?: number
-  /**
-   * For now, this can only be a number, since it has to be JSON serializable.
-   *
-   * **TODO** allow DocumentSnapshot here too. This will probably be used with a useStaticCollection hook in the future.
-   */
-  startAfter?: number
-  /**
-   * For now, this can only be a number, since it has to be JSON serializable.
-   *
-   * **TODO** allow DocumentSnapshot here too. This will probably be used with a useStaticCollection hook in the future.
-   */
-  endBefore?: number
+  startAt?: number | DocumentSnapshot
+  endAt?: number | DocumentSnapshot
+  startAfter?: number | DocumentSnapshot
+  endBefore?: number | DocumentSnapshot
+}
 
-  // THESE ARE NOT JSON SERIALIZABLE
-  // startAt?: number | DocumentSnapshot
-  // endAt?: number | DocumentSnapshot
-  // startAfter?: number | DocumentSnapshot
-  // endBefore?: number | DocumentSnapshot
+export type SerializedCollectionQueryType<
+  Doc extends object = {}
+> = CollectionQueryType<Doc> & {
+  startAt?: SerializerOptions
+  endAt?: SerializerOptions
+  startAfter?: SerializerOptions
+  endBefore?: SerializerOptions
 }
