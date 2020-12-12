@@ -14,7 +14,10 @@ export class Serializer {
 
   private static isSnapshot(value: unknown, fuego: Fuego) {
     if (!value) return false
-    return value instanceof fuego.firestore.DocumentSnapshot
+    return (
+      fuego.firestore?.DocumentSnapshot &&
+      value instanceof fuego.firestore.DocumentSnapshot
+    )
   }
 
   // Helper for where clauses
@@ -38,7 +41,7 @@ export class Serializer {
     }
 
     if (
-      fuego.firestore.DocumentReference &&
+      fuego.firestore?.DocumentReference &&
       where[2] instanceof fuego.firestore.DocumentReference &&
       !where[3]
     ) {
