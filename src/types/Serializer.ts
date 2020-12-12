@@ -1,7 +1,3 @@
-export type SerializerOptions =
-  | {
-      type: 'date'
-    }
-  | {
-      type: 'ref'
-    }
+export type SerializerOptions = {
+  type: 'date' | 'ref'
+}
