@@ -1,4 +1,4 @@
-import * as firebase from 'firebase/app'
+import { Fuego } from '..'
 import {
   CollectionQueryType,
   WhereArray,
@@ -16,17 +16,20 @@ export class Serializer {
 
   // Serializer function for where condition
   private static serializeWhere<Doc extends object = {}>(
-    where: WhereType<Doc>
+    where: WhereType<Doc>,
+    fuego: Fuego
   ): WhereType<Doc> {
     if (this.multipleConditions(where)) {
-      return where.map(w => this.serializeWhere(w)) as WhereArray<Doc>
+      return where.map(w => this.serializeWhere(w, fuego)) as WhereArray<Doc>
     }
     // Date: Inject serializer options if not specified
     if (where[2] instanceof Date && !where[3]) {
       return [...where.slice(0, 3), { type: 'date' }] as WhereItem<Doc>
     }
 
-    if (where[2] instanceof firebase.firestore.DocumentReference && !where[3]) {
+    console.log(where[2], where[2] instanceof fuego.DocumentReference)
+
+    if (where[2] instanceof fuego.DocumentReference && !where[3]) {
       return [
         ...where.slice(0, 2),
         where[2].path,
@@ -39,22 +42,24 @@ export class Serializer {
 
   // Serializer function for query
   public static serializeQuery<Data extends object = {}>(
-    query: CollectionQueryType<Data>
+    query: CollectionQueryType<Data>,
+    fuego: Fuego
   ): string {
     const { where, ...rest } = query
 
     return JSON.stringify({
-      where: where ? this.serializeWhere(where) : undefined,
+      where: where ? this.serializeWhere(where, fuego) : undefined,
       ...rest,
     })
   }
 
   // Deserializer function for where condition
   private static deserializeWhere<Doc extends object = {}>(
-    where: WhereType<Doc>
+    where: WhereType<Doc>,
+    fuego: Fuego
   ): WhereType<Doc> {
     if (this.multipleConditions(where)) {
-      return where.map(w => this.deserializeWhere(w)) as WhereArray<Doc>
+      return where.map(w => this.deserializeWhere(w, fuego)) as WhereArray<Doc>
     }
 
     if (where[3]?.type === 'date' && typeof where[2] === 'string') {
@@ -66,7 +71,7 @@ export class Serializer {
     if (where[3]?.type === 'ref' && typeof where[2] === 'string') {
       return [
         ...where.slice(0, 2),
-        firebase.firestore().doc(where[2]),
+        fuego.db.doc(where[2]),
         where[3],
       ] as WhereItem<Doc>
     }
@@ -76,7 +81,8 @@ export class Serializer {
 
   // Deserializer function for query
   public static deserializeQuery<Data extends object = {}>(
-    queryString: string
+    queryString: string,
+    fuego: Fuego
   ): CollectionQueryType<Data> | undefined {
     const query: CollectionQueryType = JSON.parse(queryString)
     if (!query) return
@@ -84,7 +90,7 @@ export class Serializer {
     const { where, ...rest } = query
 
     return {
-      where: where ? this.deserializeWhere(where) : undefined,
+      where: where ? this.deserializeWhere(where, fuego) : undefined,
       ...rest,
     }
   }

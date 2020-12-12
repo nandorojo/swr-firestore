@@ -11,6 +11,7 @@ export class Fuego {
   public auth: typeof firebase.auth
   public functions: typeof firebase.functions
   public storage: typeof firebase.storage
+  public DocumentReference = firebase.firestore.DocumentReference
   constructor(config: Config) {
     this.db = !firebase.apps.length
       ? firebase.initializeApp(config).firestore()

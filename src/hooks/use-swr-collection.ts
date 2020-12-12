@@ -169,7 +169,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
 ): Promise<ListenerReturnType<Doc>> => {
   return new Promise(resolve => {
     const query: CollectionQueryType<Doc> =
-      Serializer.deserializeQuery<Doc>(queryString) ?? {}
+      Serializer.deserializeQuery<Doc>(queryString, fuego) ?? {}
 
     const ref = createFirestoreRef(path, query)
     const unsubscribe = ref.onSnapshot(
@@ -300,16 +300,19 @@ export const useCollection = <
   // so that we can use the useEffect down below that triggers revalidate()
   const memoQueryString = useMemo(
     () =>
-      Serializer.serializeQuery<Data>({
-        endAt,
-        endBefore,
-        isCollectionGroup,
-        limit,
-        orderBy,
-        startAfter,
-        startAt,
-        where,
-      }),
+      Serializer.serializeQuery<Data>(
+        {
+          endAt,
+          endBefore,
+          isCollectionGroup,
+          limit,
+          orderBy,
+          startAfter,
+          startAt,
+          where,
+        },
+        fuego
+      ),
     [
       endAt,
       endBefore,
@@ -375,7 +378,7 @@ export const useCollection = <
 
       const data = await getCollection<Doc>(
         path,
-        Serializer.deserializeQuery(queryString),
+        Serializer.deserializeQuery(queryString, fuego),
         {
           parseDates: dateParser.current,
           ignoreFirestoreDocumentSnapshotField: shouldIgnoreSnapshot.current,

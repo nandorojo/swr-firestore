@@ -1,5 +1,6 @@
 import firebase from 'firebase'
 import { CollectionQueryType } from 'src/types/Query'
+import { Fuego } from '..'
 import { Serializer } from '../helpers/serializer'
 
 it.todo('write a test')
@@ -12,7 +13,7 @@ interface User {
 }
 
 // This is only to be able to create document references, no querying is actually done
-firebase.initializeApp({
+const fuego = new Fuego({
   projectId: '123',
 })
 
@@ -24,12 +25,12 @@ describe('serializing collection query', () => {
       limit: 1,
     }
 
-    const serialized = Serializer.serializeQuery(query)
+    const serialized = Serializer.serializeQuery(query, fuego)
     expect(serialized).toEqual(
       '{"where":["date",">","2020-01-01T00:00:00.000Z",{"type":"date"}],"orderBy":"name","limit":1}'
     )
 
-    const deserialized = Serializer.deserializeQuery(serialized)
+    const deserialized = Serializer.deserializeQuery(serialized, fuego)
     expect(deserialized).toEqual({
       ...query,
       where: ['date', '>', new Date('2020-01-01'), { type: 'date' }],
@@ -47,12 +48,12 @@ describe('serializing collection query', () => {
       limit: 1,
     }
 
-    const serialized = Serializer.serializeQuery(query)
+    const serialized = Serializer.serializeQuery(query, fuego)
     expect(serialized).toEqual(
       '{"where":[["date",">","2010-01-01T00:00:00.000Z",{"type":"date"}],["date","<","2020-01-01T00:00:00.000Z",{"type":"date"}],["name","==","Fernando"]],"orderBy":"name","limit":1}'
     )
 
-    const deserialized = Serializer.deserializeQuery(serialized)
+    const deserialized = Serializer.deserializeQuery(serialized, fuego)
     expect(deserialized).toEqual({
       ...query,
       where: [
@@ -74,12 +75,12 @@ describe('serializing collection query', () => {
       limit: 1,
     }
 
-    const serialized = Serializer.serializeQuery(query)
+    const serialized = Serializer.serializeQuery(query, fuego)
     expect(serialized).toEqual(
       '{"where":["user","==","users/dqKiW6iFUyFmXN1aVBQ6",{"type":"ref"}],"orderBy":"name","limit":1}'
     )
 
-    const deserialized = Serializer.deserializeQuery(serialized)
+    const deserialized = Serializer.deserializeQuery(serialized, fuego)
     expect(deserialized).toEqual({
       ...query,
       where: [
