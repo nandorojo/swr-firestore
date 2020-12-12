@@ -27,9 +27,11 @@ export class Serializer {
       return [...where.slice(0, 3), { type: 'date' }] as WhereItem<Doc>
     }
 
-    console.log(where[2], where[2] instanceof fuego.DocumentReference)
-
-    if (where[2] instanceof fuego.DocumentReference && !where[3]) {
+    if (
+      fuego.DocumentReference &&
+      where[2] instanceof fuego.DocumentReference &&
+      !where[3]
+    ) {
       return [
         ...where.slice(0, 2),
         where[2].path,
