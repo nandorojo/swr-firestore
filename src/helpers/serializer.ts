@@ -59,8 +59,6 @@ export class Serializer {
   private static serializeSnapshot(
     snapshot: DocumentSnapshot
   ): SerializerOptions {
-    console.log('Serializing snapshot', snapshot.ref.path)
-
     this.snapshotCache[snapshot.ref.path] = snapshot
 
     return {
@@ -126,12 +124,6 @@ export class Serializer {
     snapshot: SerializerOptions
   ): DocumentSnapshot | undefined {
     if (snapshot.type !== 'snapshot') return
-
-    console.log(
-      'Deserializing snapshot',
-      snapshot,
-      this.snapshotCache[snapshot.path]
-    )
 
     return this.snapshotCache[snapshot.path]
   }
