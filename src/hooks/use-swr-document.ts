@@ -95,7 +95,7 @@ export const getDocument = async <Doc extends Document = Document>(
     })
 
   // update the document in any collections listening to the same document
-  let collection = path.slice(0, -(`/${data.id}`.length))
+  const collection = path.slice(0, -(`/${data.id}`.length))
 
   if (collection) {
     collectionCache.getSWRKeysFromCollectionPath(collection).forEach(key => {
