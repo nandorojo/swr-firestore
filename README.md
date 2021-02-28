@@ -75,6 +75,8 @@ npm i firebase
 
 In the root of your app, **create an instance of Fuego** and pass it to the **FuegoProvider**.
 
+If you're using Firebase v8, see [this solution](https://github.com/nandorojo/swr-firestore/issues/59#issuecomment-719950071) for creating your instance of `Fuego`.
+
 If you're using `next.js`, this goes in your `pages/_app.js` file.
 
 `App.js`
