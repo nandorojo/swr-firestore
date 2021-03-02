@@ -11,6 +11,7 @@ export class Fuego {
   public auth: typeof firebase.auth
   public functions: typeof firebase.functions
   public storage: typeof firebase.storage
+  public firestore: typeof firebase.firestore
   constructor(config: Config) {
     this.db = !firebase.apps.length
       ? firebase.initializeApp(config).firestore()
@@ -18,5 +19,6 @@ export class Fuego {
     this.auth = firebase.auth
     this.functions = firebase.functions
     this.storage = firebase.storage
+    this.firestore = firebase.firestore
   }
 }

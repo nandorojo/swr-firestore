@@ -7,76 +7,12 @@ import { collectionCache } from '../classes/Cache'
 
 // type Document<T = {}> = T & { id: string }
 
-import {
-  FieldPath,
-  OrderByDirection,
-  WhereFilterOp,
-  Query,
-} from '@firebase/firestore-types'
+import { FieldPath, Query } from '@firebase/firestore-types'
 import { isDev } from '../helpers/is-dev'
 import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
 import { Document } from '../types'
-
-type KeyHack = string & {} // hack to also allow strings
-
-// here we get the "key" from our data, to add intellisense for any "orderBy" in the queries and such.
-type OrderByArray<Doc extends object = {}, Key = keyof Doc> = [
-  Key | FieldPath | KeyHack,
-  OrderByDirection
-]
-type OrderByItem<Doc extends object = {}, Key = keyof Doc> =
-  | OrderByArray<Doc>
-  | Key
-  | KeyHack
-type OrderByType<Doc extends object = {}> =
-  | OrderByItem<Doc>
-  | OrderByArray<Doc>[]
-
-type WhereItem<Doc extends object = {}, Key = keyof Doc> = [
-  Key | FieldPath | KeyHack,
-  WhereFilterOp,
-  unknown
-]
-type WhereArray<Doc extends object = {}> = WhereItem<Doc>[]
-type WhereType<Doc extends object = {}> = WhereItem<Doc> | WhereArray<Doc>
-
-export type CollectionQueryType<Doc extends object = {}> = {
-  limit?: number
-  orderBy?: OrderByType<Doc>
-  where?: WhereType<Doc>
-  isCollectionGroup?: boolean
-
-  /**
-   * For now, this can only be a number, since it has to be JSON serializable.
-   *
-   * **TODO** allow DocumentSnapshot here too. This will probably be used with a useStaticCollection hook in the future.
-   */
-  startAt?: number
-  /**
-   * For now, this can only be a number, since it has to be JSON serializable.
-   *
-   * **TODO** allow DocumentSnapshot here too. This will probably be used with a useStaticCollection hook in the future.
-   */
-  endAt?: number
-  /**
-   * For now, this can only be a number, since it has to be JSON serializable.
-   *
-   * **TODO** allow DocumentSnapshot here too. This will probably be used with a useStaticCollection hook in the future.
-   */
-  startAfter?: number
-  /**
-   * For now, this can only be a number, since it has to be JSON serializable.
-   *
-   * **TODO** allow DocumentSnapshot here too. This will probably be used with a useStaticCollection hook in the future.
-   */
-  endBefore?: number
-
-  // THESE ARE NOT JSON SERIALIZABLE
-  // startAt?: number | DocumentSnapshot
-  // endAt?: number | DocumentSnapshot
-  // startAfter?: number | DocumentSnapshot
-  // endBefore?: number | DocumentSnapshot
-}
+import { Serializer } from '../helpers/serializer'
+import { CollectionQueryType, OrderByArray, OrderByType } from '../types/Query'
 
 export const getCollection = async <Doc extends Document = Document>(
   path: string,
@@ -155,10 +91,7 @@ const createFirestoreRef = <Doc extends object = {}>(
     }
 
     if (where) {
-      function multipleConditions(w: WhereType<Doc>): w is WhereArray<Doc> {
-        return !!(w as WhereArray) && Array.isArray(w[0])
-      }
-      if (multipleConditions(where)) {
+      if (Serializer.multipleConditions<Doc>(where)) {
         where.forEach(w => {
           ref = ref.where(w[0] as string | FieldPath, w[1], w[2])
         })
@@ -233,7 +166,9 @@ const createListenerAsync = async <Doc extends Document = Document>(
   }
 ): Promise<ListenerReturnType<Doc>> => {
   return new Promise(resolve => {
-    const query: CollectionQueryType = JSON.parse(queryString) ?? {}
+    const query: CollectionQueryType<Doc> =
+      Serializer.deserializeQuery<Doc>(queryString, fuego) ?? {}
+
     const ref = createFirestoreRef(path, query)
     const unsubscribe = ref.onSnapshot(
       { includeMetadataChanges: true },
@@ -363,16 +298,19 @@ export const useCollection = <
   // so that we can use the useEffect down below that triggers revalidate()
   const memoQueryString = useMemo(
     () =>
-      JSON.stringify({
-        where,
-        endAt,
-        endBefore,
-        startAfter,
-        startAt,
-        orderBy,
-        limit,
-        isCollectionGroup,
-      }),
+      Serializer.serializeQuery<Data>(
+        {
+          endAt,
+          endBefore,
+          isCollectionGroup,
+          limit,
+          orderBy,
+          startAfter,
+          startAt,
+          where,
+        },
+        fuego
+      ),
     [
       endAt,
       endBefore,
@@ -438,7 +376,7 @@ export const useCollection = <
 
       const data = await getCollection<Doc>(
         path,
-        JSON.parse(queryString) as CollectionQueryType<Doc>,
+        Serializer.deserializeQuery(queryString, fuego),
         {
           parseDates: dateParser.current,
           ignoreFirestoreDocumentSnapshotField: shouldIgnoreSnapshot.current,
@@ -476,6 +414,10 @@ export const useCollection = <
     // TODO should this only be for listen, since SWR updates with the others?
     // also should it go before the useSWR?
     return () => {
+      const query = Serializer.deserializeQuery(memoQueryString, fuego)
+      if (query) {
+        Serializer.cleanQuery(query, fuego)
+      }
       // clean up listener on unmount if it exists
       if (unsubscribeRef.current) {
         unsubscribeRef.current()
