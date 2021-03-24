@@ -290,8 +290,8 @@ export type CollectionSWROptions<
  * Call a Firestore Collection
  * @template Doc
  * @param path String if the document is ready. If it's not ready yet, pass `null`, and the request won't start yet.
- * @param [query] - Dictionary with options to query the collection.
- * @param [options] - Dictionary with option `listen`. If true, it will open a socket listener. Also takes any of SWR's options.
+ * @param [query] - Dictionary with options to query the collection *AND* optionally accepts `listen`, `parseDates`, and `ignoreFirestoreDocumentSnapshotField` as well.
+ * @param [options] - Dictionary of options to pass to the underlying useSWR library.
  */
 export const useCollection = <
   Data extends object = {},
