@@ -92,8 +92,12 @@ data: ${JSON.stringify(data)}`
       false
     )
   })
-
-  return fireSWR.db.doc(path).set(data, options)
+  if (!options) {
+    console.warn("[@nandorojo/swr-firestore] error: set() function cannot reference undefined options variable");
+  } else {
+    return fireSWR.db.doc(path).set(data, options)
+  }
+  return null;
 }
 
 const update = <

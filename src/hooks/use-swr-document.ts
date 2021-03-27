@@ -345,7 +345,12 @@ export const useDocument = <
         })
       }
       if (!path) return null
-      return fireSWR.db.doc(path).set(data, options)
+      if (!options) {
+        console.warn("[use-document] error: set() function cannot reference undefined options variable");
+      } else {
+        return fireSWR.db.doc(path).set(data, options)
+      }
+      return null;
     },
     [path, listen, connectedMutate]
   )
