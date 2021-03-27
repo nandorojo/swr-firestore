@@ -1,6 +1,6 @@
 import useSWR, { mutate, ConfigInterface } from 'swr'
 import type { SetOptions, FieldValue } from '@firebase/firestore-types'
-import { fuego } from '../context'
+import { fireSWR } from '../context'
 import { useRef, useEffect, useCallback } from 'react'
 import { empty } from '../helpers/empty'
 import { AllowType, Document } from '../types/Document'
@@ -9,7 +9,7 @@ import { isDev } from '../helpers/is-dev'
 import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
 import { deleteDocument } from './static-mutations'
 
- 
+
 type Options<Doc extends Document = Document> = {
   /**
    * If `true`, sets up a real-time subscription to the Firestore backend.
@@ -40,7 +40,7 @@ type Options<Doc extends Document = Document> = {
 
 type ListenerReturnType<Doc extends Document = Document> = {
   initialData: Doc
-  unsubscribe: ReturnType<ReturnType<typeof fuego['db']['doc']>['onSnapshot']>
+  unsubscribe: ReturnType<ReturnType<typeof fireSWR['db']['doc']>['onSnapshot']>
 }
 
 export const getDocument = async <Doc extends Document = Document>(
@@ -63,7 +63,7 @@ export const getDocument = async <Doc extends Document = Document>(
     ignoreFirestoreDocumentSnapshotField?: boolean
   } = empty.object
 ) => {
-  const data = await fuego.db
+  const data = await fireSWR.db
     .doc(path)
     .get()
     .then(doc => {
@@ -142,7 +142,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
   } = {}
 ): Promise<ListenerReturnType<Doc>> => {
   return await new Promise(resolve => {
-    const unsubscribe = fuego.db.doc(path).onSnapshot(doc => {
+    const unsubscribe = fireSWR.db.doc(path).onSnapshot(doc => {
       const docData = doc.data() ?? empty.object
       const data = withDocumentDatesParsed<Doc>(
         ({
@@ -345,7 +345,7 @@ export const useDocument = <
         })
       }
       if (!path) return null
-      return fuego.db.doc(path).set(data, options)
+      return fireSWR.db.doc(path).set(data, options)
     },
     [path, listen, connectedMutate]
   )
@@ -367,7 +367,7 @@ export const useDocument = <
         })
       }
       if (!path) return null
-      return fuego.db.doc(path).update(data)
+      return fireSWR.db.doc(path).update(data)
     },
     [listen, path, connectedMutate]
   )

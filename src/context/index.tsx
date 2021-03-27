@@ -1,31 +1,31 @@
 import React, { useContext } from 'react'
 import { createContext, ReactNode } from 'react'
-import { Fuego } from '../classes/Fuego'
+import { FireSWR } from '../classes/FireSWR'
 
 type Context = {
-  fuego: Fuego
+  fireSWR: FireSWR
 }
 
 // @ts-ignore
-export const FuegoContext = createContext<Context>(null)
+export const FireSWRContext = createContext<Context>(null)
 
 type Props = {
   children: ReactNode
-  fuego: Fuego
+  fireSWR: FireSWR
 }
 
-export let fuego: Fuego
+export let fireSWR: FireSWR
 
-export const setFuego = (f: Fuego) => (fuego = f)
+export const setFireSWR = (f: FireSWR) => (fireSWR = f)
 
-export const useFuegoContext = () => {
-  const context = useContext(FuegoContext)
+export const useFireSWRContext = () => {
+  const context = useContext(FireSWRContext)
   return context
 }
 
-export const FuegoProvider = ({ children, fuego }: Props) => {
-  setFuego(fuego)
+export const FireSWRProvider = ({ children, fireSWR }: Props) => {
+  setFireSWR(fireSWR)
   return (
-    <FuegoContext.Provider value={{ fuego }}>{children}</FuegoContext.Provider>
+    <FireSWRContext.Provider value={{ fireSWR }}>{children}</FireSWRContext.Provider>
   )
 }

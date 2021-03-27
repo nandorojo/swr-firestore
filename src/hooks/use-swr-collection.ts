@@ -1,5 +1,5 @@
 import useSWR, { mutate as mutateStatic, ConfigInterface } from 'swr'
-import { fuego } from '../context'
+import { fireSWR } from '../context'
 import { useRef, useEffect, useMemo, useCallback } from 'react'
 // import { useMemoOne as useMemo } from 'use-memo-one'
 import { empty } from '../helpers/empty'
@@ -148,10 +148,10 @@ const createFirestoreRef = <Doc extends object = {}>(
 ) =>
   // { isCollectionGroup = false }: { isCollectionGroup?: boolean } = empty.object
   {
-    let ref: Query = fuego.db.collection(path)
+    let ref: Query = fireSWR.db.collection(path)
 
     if (isCollectionGroup) {
-      ref = fuego.db.collectionGroup(path)
+      ref = fireSWR.db.collectionGroup(path)
     }
 
     if (where) {
@@ -212,7 +212,7 @@ const createFirestoreRef = <Doc extends object = {}>(
 
 type ListenerReturnType<Doc extends Document = Document> = {
   initialData: Doc[] | null
-  unsubscribe: ReturnType<ReturnType<typeof fuego['db']['doc']>['onSnapshot']>
+  unsubscribe: ReturnType<ReturnType<typeof fireSWR['db']['doc']>['onSnapshot']>
 }
 
 const createListenerAsync = async <Doc extends Document = Document>(
@@ -503,7 +503,7 @@ export const useCollection = <
 
       const dataArray = Array.isArray(data) ? data : [data]
 
-      const ref = fuego.db.collection(path)
+      const ref = fireSWR.db.collection(path)
 
       const docsToAdd: Doc[] = (dataArray.map(doc => ({
         ...doc,
@@ -522,7 +522,7 @@ export const useCollection = <
       }
 
       // add to network
-      const batch = fuego.db.batch()
+      const batch = fireSWR.db.batch()
 
       docsToAdd.forEach(({ id, ...doc }) => {
         // take the ID out of the document

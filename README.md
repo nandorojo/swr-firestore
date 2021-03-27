@@ -73,9 +73,9 @@ npm i firebase
 
 ## Set up
 
-In the root of your app, **create an instance of Fuego** and pass it to the **FuegoProvider**.
+In the root of your app, **create an instance of FireSWR** and pass it to the **FireSWRProvider**.
 
-If you're using Firebase v8, see [this solution](https://github.com/nandorojo/swr-firestore/issues/59#issuecomment-719950071) for creating your instance of `Fuego`.
+If you're using Firebase v8, see [this solution](https://github.com/nandorojo/swr-firestore/issues/59#issuecomment-719950071) for creating your instance of `FireSWR`.
 
 If you're using `next.js`, this goes in your `pages/_app.js` file.
 
@@ -85,24 +85,24 @@ If you're using `next.js`, this goes in your `pages/_app.js` file.
 import React from 'react'
 import 'firebase/firestore'
 import 'firebase/auth'
-import { Fuego, FuegoProvider } from '@nandorojo/swr-firestore'
+import { FireSWR, FireSWRProvider } from '@nandorojo/swr-firestore'
 
 const firebaseConfig = {
   // put yours here
 }
 
-const fuego = new Fuego(firebaseConfig)
+const fireSWR = new FireSWR(firebaseConfig)
 
 export default function App() {
   return (
-    <FuegoProvider fuego={fuego}>
+    <FireSWRProvider fireSWR={fireSWR}>
       <YourAppHere />
-    </FuegoProvider>
+    </FireSWRProvider>
   )
 }
 ```
 
-Make sure to create your `Fuego` instance outside of the component. The only argument `Fuego` takes is your firebase `config` variable.
+Make sure to create your `FireSWR` instance outside of the component. The only argument `FireSWR` takes is your firebase `config` variable.
 
 Under the hood, this step initializes firebase for you. No need to call `firebase.initializeApp`.
 
@@ -347,7 +347,7 @@ Video [here](https://imgur.com/a/o9AlI4N).
 
 ```typescript
 import React from 'react'
-import { fuego, useCollection } from '@nandorojo/swr-firestore'
+import { fireSWR, useCollection } from '@nandorojo/swr-firestore'
 
 const collection = 'dump'
 const limit = 1
@@ -374,7 +374,7 @@ export default function Paginate() {
   const paginate = async () => {
     if (!data?.length) return
 
-    const ref = fuego.db.collection(collection)
+    const ref = fireSWR.db.collection(collection)
 
     // get the snapshot of last document we have right now in our query
     const startAfterDocument = data[data.length - 1].__snapshot
@@ -443,7 +443,7 @@ import {
   // these all update BOTH Firestore & the local cache ⚡️
   set, // set a firestore document
   update, // update a firestore document
-  fuego, // get the firebase instance used by this lib
+  fireSWR, // get the firebase instance used by this lib
   getCollection, // prefetch a collection, without being hooked into SWR or React
   getDocument, // prefetch a document, without being hooked into SWR or React
 } from '@nandorojo/swr-firestore'
@@ -707,7 +707,7 @@ Refetch a collection query from Firestore, and update the local cache. Useful if
 - Only argument is the Firestore document path (ex: `users`)
 - **Note** Calling `revalidateCollection` will update _all_ collection queries. If you're paginating data for a given collection, you probably won't want to use this function for that collection.
 
-## `fuego`
+## `fireSWR`
 
 The current firebase instance used by this library. Exports the following fields:
 
@@ -715,11 +715,11 @@ The current firebase instance used by this library. Exports the following fields
 - `auth`: the `firebase.auth` variable.
 
 ```js
-import { fuego } from '@nandorojo/swr-firestore'
+import { fireSWR } from '@nandorojo/swr-firestore'
 
-fuego.db.doc('users/Fernando').get()
+fireSWR.db.doc('users/Fernando').get()
 
-fuego.auth().currentUser?.uid
+fireSWR.auth().currentUser?.uid
 ```
 
 ## `getDocument(path, options?)`

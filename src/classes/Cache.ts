@@ -29,7 +29,7 @@ class CollectionCache {
       0
     if (!isCollection) {
       console.error(
-        `[fuego-swr-keys-from-collection-path] error: Passed a path that was not a collection to useCollection: ${path}.`
+        `[fireswr-keys-from-collection-path] error: Passed a path that was not a collection to useCollection: ${path}.`
       )
     }
     return (
