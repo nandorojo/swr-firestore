@@ -1,4 +1,4 @@
-import { QueryDocumentSnapshot } from '@firebase/firestore-types'
+import type { QueryDocumentSnapshot } from 'firebase/firestore'
 
 export type Document<T = {}> = T & {
   id: string

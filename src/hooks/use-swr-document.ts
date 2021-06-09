@@ -1,5 +1,6 @@
 import useSWR, { mutate, ConfigInterface } from 'swr'
-import type { SetOptions, FieldValue } from '@firebase/firestore-types'
+import type { SetOptions, FieldValue, Unsubscribe } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore'
 import { fuego } from '../context'
 import { useRef, useEffect, useCallback } from 'react'
 import { empty } from '../helpers/empty'
@@ -9,7 +10,7 @@ import { isDev } from '../helpers/is-dev'
 import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
 import { deleteDocument } from './static-mutations'
 
- 
+
 type Options<Doc extends Document = Document> = {
   /**
    * If `true`, sets up a real-time subscription to the Firestore backend.
@@ -40,7 +41,7 @@ type Options<Doc extends Document = Document> = {
 
 type ListenerReturnType<Doc extends Document = Document> = {
   initialData: Doc
-  unsubscribe: ReturnType<ReturnType<typeof fuego['db']['doc']>['onSnapshot']>
+  unsubscribe: Unsubscribe
 }
 
 export const getDocument = async <Doc extends Document = Document>(
@@ -63,9 +64,7 @@ export const getDocument = async <Doc extends Document = Document>(
     ignoreFirestoreDocumentSnapshotField?: boolean
   } = empty.object
 ) => {
-  const data = await fuego.db
-    .doc(path)
-    .get()
+  const data = await getDoc(doc(fuego.db, path))
     .then(doc => {
       const docData =
         doc.data({
@@ -142,7 +141,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
   } = {}
 ): Promise<ListenerReturnType<Doc>> => {
   return await new Promise(resolve => {
-    const unsubscribe = fuego.db.doc(path).onSnapshot(doc => {
+    const unsubscribe = onSnapshot(doc(fuego.db, path), doc => {
       const docData = doc.data() ?? empty.object
       const data = withDocumentDatesParsed<Doc>(
         ({
@@ -337,6 +336,7 @@ export const useDocument = <
         // @ts-ignore
         connectedMutate((prevState = empty.object) => {
           // default we set merge to be false. this is annoying, but follows Firestore's preference.
+          // @ts-ignore
           if (!options?.merge) return data
           return {
             ...prevState,
@@ -345,7 +345,10 @@ export const useDocument = <
         })
       }
       if (!path) return null
-      return fuego.db.doc(path).set(data, options)
+      if (!options) {
+        return setDoc(doc(fuego.db, path), data)
+      }
+      return setDoc(doc(fuego.db, path), data, options)
     },
     [path, listen, connectedMutate]
   )
@@ -367,34 +370,34 @@ export const useDocument = <
         })
       }
       if (!path) return null
-      return fuego.db.doc(path).update(data)
-    },
-    [listen, path, connectedMutate]
+      return updateDoc(doc(fuego.db,path), data)
+},
+  [listen, path, connectedMutate]
   )
 
-  const connectedDelete = useCallback(() => {
-    return deleteDocument(path, listen)
-  }, [path, listen])
+const connectedDelete = useCallback(() => {
+  return deleteDocument(path, listen)
+}, [path, listen])
 
-  return {
-    data,
-    isValidating,
-    revalidate,
-    mutate: connectedMutate,
-    error,
-    set,
-    update,
-    loading: !data && !error,
-    deleteDocument: connectedDelete,
-    /**
-     * A function that, when called, unsubscribes the Firestore listener.
-     *
-     * The function can be null, so make sure to check that it exists before calling it.
-     *
-     * **Note**: This is not necessary to use. `useDocument` already unmounts the listener for you. This is only intended if you want to unsubscribe on your own.
-     */
-    unsubscribe: unsubscribeRef.current
-  }
+return {
+  data,
+  isValidating,
+  revalidate,
+  mutate: connectedMutate,
+  error,
+  set,
+  update,
+  loading: !data && !error,
+  deleteDocument: connectedDelete,
+  /**
+   * A function that, when called, unsubscribes the Firestore listener.
+   *
+   * The function can be null, so make sure to check that it exists before calling it.
+   *
+   * **Note**: This is not necessary to use. `useDocument` already unmounts the listener for you. This is only intended if you want to unsubscribe on your own.
+   */
+  unsubscribe: unsubscribeRef.current
+}
 }
 
 // const useSubscription = (path: string) => {
