@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/ban-types */
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import { mutate } from 'swr'
-import { SetOptions } from '@firebase/firestore-types'
+import type { SetOptions } from 'firebase/firestore'
+import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore'
 import { fuego } from '../context'
 import { empty } from '../helpers/empty'
 import { collectionCache } from '../classes/Cache'
@@ -57,6 +60,7 @@ data: ${JSON.stringify(data)}`
     mutate(
       path,
       (prevState = empty.object) => {
+        // @ts-ignore
         if (!options?.merge) return data
         return {
           ...prevState,
@@ -83,6 +87,7 @@ data: ${JSON.stringify(data)}`
         }
         return currentState.map((document = empty.object as Doc) => {
           if (document.id === docId) {
+            // @ts-ignore
             if (!options?.merge) return document
             return { ...document, ...data }
           }
@@ -92,8 +97,10 @@ data: ${JSON.stringify(data)}`
       false
     )
   })
-
-  return fuego.db.doc(path).set(data, options)
+  if (!options) {
+    return setDoc(doc(fuego.db, path), data)
+  }
+  return setDoc(doc(fuego.db, path), data, options)
 }
 
 const update = <
@@ -158,7 +165,7 @@ data: ${JSON.stringify(data)}`
       false
     )
   })
-  return fuego.db.doc(path).update(data)
+  return updateDoc(doc(fuego.db, path), data)
 }
 
 const deleteDocument = <
@@ -217,7 +224,7 @@ const deleteDocument = <
     })
   }
 
-  return fuego.db.doc(path).delete()
+  return deleteDoc(doc(fuego.db, path))
 }
 
 export { set, update, revalidateDocument, revalidateCollection, deleteDocument }
