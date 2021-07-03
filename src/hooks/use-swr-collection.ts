@@ -498,10 +498,13 @@ export const useCollection = <
    * - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `add` function provided by Firestore.
    */
   const add = useCallback(
-    (data: Data | Data[]) => {
+    <T extends Data | Data[]>(
+      data: T
+    ): Promise<T extends Data ? string : string[]> | null => {
       if (!path) return null
 
-      const dataArray = Array.isArray(data) ? data : [data]
+      const multiple = Array.isArray(data)
+      const dataArray = multiple ? data : [data]
 
       const ref = fuego.db.collection(path)
 
@@ -529,7 +532,12 @@ export const useCollection = <
         batch.set(ref.doc(id), doc)
       })
 
-      return batch.commit()
+      return batch.commit().then(() => {
+        const ids = docsToAdd.map(({ id }) => id)
+        const returnValue = multiple ? ids : ids[0]
+
+        return returnValue as T extends Data ? string : string[]
+      })
     },
     [listen, mutate, path]
   )
