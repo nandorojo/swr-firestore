@@ -1,9 +1,6 @@
+import { CollectionQueryType } from '../types/Query'
 import { Document } from '../types'
-import {
-  CollectionQueryType,
-  CollectionSWROptions,
-  useCollection,
-} from './use-swr-collection'
+import { CollectionSWROptions, useCollection } from './use-swr-collection'
 
 // type UseCollection = Parameters<typeof useCollection>
 
