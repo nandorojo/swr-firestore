@@ -349,6 +349,8 @@ const { data, set } = useDocument('users/fernando', {
   ignoreFirestoreDocumentSnapshotField: false,
 })
 
+if (!data) return <Loading />
+
 <Formik
   initialValues={data.__snapshot.data()}
   ...
