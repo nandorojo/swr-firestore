@@ -69,7 +69,7 @@ export const getCollection = async <Doc extends Document = Document>(
   return data
 }
 
-const createFirestoreRef = <Doc extends object = {}>(
+export const createFirestoreRef = <Doc extends object = {}>(
   path: string,
   {
     where,
