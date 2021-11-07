@@ -1,3 +1,24 @@
+# Houston's fork of `swr-firestore`
+
+[`swr-firestore`](https://github.com/nandorojo/swr-firestore) is a great library that
+lets us use [SWR](https://swr.vercel.app/)-style hooks for Firebase.
+
+There are a number of changes that we needed to make to the library to make it work for
+us.
+
+### Important changes:
+
+* Export helpers so that we can write paginated fetchers
+* Get ids from documents created with the `add` function
+* Parse dates automatically (from Firebase dates to normal JS `Date` objects) via a
+  `parseDates` option
+
+Check the commit history for more details. Changes made by @jckw are made for the
+Houston project.
+
+
+--------
+
 # SWR + Firestore
 
 ```js
