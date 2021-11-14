@@ -214,9 +214,9 @@ const { data, add } = useCollection('albums', {
   where: ['artist', '==', 'Drake'],
 })
 
-const onPress = () => {
+const onPress = async () => {
   // calling this will automatically update your global cache & Firestore
-  add({
+  const documentId = await add({
     title: 'Dark Lane Demo Tapes',
     artist: 'Drake',
     year: '2020',
@@ -639,7 +639,7 @@ _(optional)_ A dictionary with added options for the request. See the [options a
 
 Returns a dictionary with the following values:
 
-- `add(data)`: Extends the Firestore document [`add` function](https://firebase.google.com/docs/firestore/manage-data/add-data).
+- `add(data)`: Extends the Firestore document [`add` function](https://firebase.google.com/docs/firestore/manage-data/add-data). Returns the added document ID(s).
   - It also updates the local cache using SWR's `mutate`. This will prove highly convenient over the regular `add` function provided by Firestore.
 
 The returned dictionary also includes the following [from `useSWR`](https://github.com/zeit/swr#return-values):
