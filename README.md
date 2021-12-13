@@ -341,6 +341,37 @@ if (data) {
 
 You can do the same for `useCollection` and `useCollectionGroup`. The snapshot will be on each item in the `data` array.
 
+This comes in handy when you are working with forms for data edits:
+
+**With Formik**
+```js
+const { data, set } = useDocument('users/fernando', {
+  ignoreFirestoreDocumentSnapshotField: false,
+})
+
+if (!data) return <Loading />
+
+<Formik
+  initialValues={data.__snapshot.data()}
+  ...
+/>
+```
+
+**With state and hooks**
+```js
+const { data, set } = useDocument('users/fernando', {
+  ignoreFirestoreDocumentSnapshotField: false,
+})
+
+const [values, setValues] = useState(null);
+
+useEffect(() => {
+  if (data) {
+    setValues(data.__snapshot.data());
+  }
+}, [data]);
+```
+
 ### Paginate a collection:
 
 Video [here](https://imgur.com/a/o9AlI4N).
