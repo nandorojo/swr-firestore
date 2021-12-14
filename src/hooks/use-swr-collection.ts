@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import useSWR, { mutate as mutateStatic, ConfigInterface } from 'swr'
 import { fuego } from '../context'
 import { useRef, useEffect, useMemo, useCallback } from 'react'
@@ -7,12 +8,29 @@ import { collectionCache } from '../classes/Cache'
 
 // type Document<T = {}> = T & { id: string }
 
-import {
+import type {
   FieldPath,
   OrderByDirection,
   WhereFilterOp,
   Query,
-} from '@firebase/firestore-types'
+  Unsubscribe,
+} from 'firebase/firestore'
+import {
+  query,
+  getDocs,
+  onSnapshot,
+  collection,
+  collectionGroup,
+  orderBy as queryOrderBy,
+  where as queryWhere,
+  startAt as queryStartAt,
+  startAfter as queryStartAfter,
+  endBefore as queryEndBefore,
+  endAt as queryEndAt,
+  limit as queryLimit,
+  doc as FirestoreDoc,
+  writeBatch,
+} from 'firebase/firestore'
 import { isDev } from '../helpers/is-dev'
 import { withDocumentDatesParsed } from '../helpers/doc-date-parser'
 import { Document } from '../types'
@@ -96,7 +114,7 @@ export const getCollection = async <Doc extends Document = Document>(
   } = empty.object
 ) => {
   const ref = createFirestoreRef(path, query)
-  const data: Doc[] = await ref.get().then(querySnapshot => {
+  const data: Doc[] = await getDocs(ref).then(querySnapshot => {
     const array: typeof data = []
     querySnapshot.forEach(doc => {
       const docData =
@@ -115,11 +133,7 @@ export const getCollection = async <Doc extends Document = Document>(
       )
       // update individual docs in the cache
       mutateStatic(doc.ref.path, docToAdd, false)
-      if (
-        isDev &&
-        // @ts-ignore
-        (docData.exists || docData.id || docData.hasPendingWrites)
-      ) {
+      if (isDev && (docData.exists || docData.id || docData.hasPendingWrites)) {
         console.warn(
           '[get-collection] warning: Your document, ',
           doc.id,
@@ -148,10 +162,10 @@ const createFirestoreRef = <Doc extends object = {}>(
 ) =>
   // { isCollectionGroup = false }: { isCollectionGroup?: boolean } = empty.object
   {
-    let ref: Query = fuego.db.collection(path)
+    let ref: Query = collection(fuego.db, path)
 
     if (isCollectionGroup) {
-      ref = fuego.db.collectionGroup(path)
+      ref = collectionGroup(fuego.db, path)
     }
 
     if (where) {
@@ -160,16 +174,16 @@ const createFirestoreRef = <Doc extends object = {}>(
       }
       if (multipleConditions(where)) {
         where.forEach(w => {
-          ref = ref.where(w[0] as string | FieldPath, w[1], w[2])
+          ref = query(ref, queryWhere(w[0] as string | FieldPath, w[1], w[2]))
         })
       } else if (typeof where[0] === 'string' && typeof where[1] === 'string') {
-        ref = ref.where(where[0], where[1], where[2])
+        ref = query(ref, queryWhere(where[0], where[1], where[2]))
       }
     }
 
     if (orderBy) {
       if (typeof orderBy === 'string') {
-        ref = ref.orderBy(orderBy)
+        ref = query(ref, queryOrderBy(orderBy))
       } else if (Array.isArray(orderBy)) {
         function multipleOrderBy(
           o: OrderByType<Doc>
@@ -178,33 +192,36 @@ const createFirestoreRef = <Doc extends object = {}>(
         }
         if (multipleOrderBy(orderBy)) {
           orderBy.forEach(([order, direction]) => {
-            ref = ref.orderBy(order as string | FieldPath, direction)
+            ref = query(
+              ref,
+              queryOrderBy(order as string | FieldPath, direction)
+            )
           })
         } else {
           const [order, direction] = orderBy
-          ref = ref.orderBy(order as string | FieldPath, direction)
+          ref = query(ref, queryOrderBy(order as string | FieldPath, direction))
         }
       }
     }
 
     if (startAt) {
-      ref = ref.startAt(startAt)
+      ref = query(ref, queryStartAt(startAt))
     }
 
     if (endAt) {
-      ref = ref.endAt(endAt)
+      ref = query(ref, queryEndAt(endAt))
     }
 
     if (startAfter) {
-      ref = ref.startAfter(startAfter)
+      ref = query(ref, queryStartAfter(startAfter))
     }
 
     if (endBefore) {
-      ref = ref.endBefore(endBefore)
+      ref = query(ref, queryEndBefore(endBefore))
     }
 
     if (limit) {
-      ref = ref.limit(limit)
+      ref = query(ref, queryLimit(limit))
     }
 
     return ref
@@ -212,7 +229,7 @@ const createFirestoreRef = <Doc extends object = {}>(
 
 type ListenerReturnType<Doc extends Document = Document> = {
   initialData: Doc[] | null
-  unsubscribe: ReturnType<ReturnType<typeof fuego['db']['doc']>['onSnapshot']>
+  unsubscribe: Unsubscribe
 }
 
 const createListenerAsync = async <Doc extends Document = Document>(
@@ -235,7 +252,8 @@ const createListenerAsync = async <Doc extends Document = Document>(
   return new Promise(resolve => {
     const query: CollectionQueryType = JSON.parse(queryString) ?? {}
     const ref = createFirestoreRef(path, query)
-    const unsubscribe = ref.onSnapshot(
+    const unsubscribe = onSnapshot(
+      ref,
       { includeMetadataChanges: true },
       querySnapshot => {
         const data: Doc[] = []
@@ -258,7 +276,6 @@ const createListenerAsync = async <Doc extends Document = Document>(
           )
           if (
             isDev &&
-            // @ts-ignore
             (docData.exists || docData.id || docData.hasPendingWrites)
           ) {
             console.warn(
@@ -506,12 +523,12 @@ export const useCollection = <
       const multiple = Array.isArray(data)
       const dataArray = multiple ? (data as T[]) : [data]
 
-      const ref = fuego.db.collection(path)
+      const ref = collection(fuego.db, path)
 
       const docsToAdd: Doc[] = (dataArray.map(doc => ({
         ...doc,
         // generate IDs we can use that in the local cache that match the server
-        id: ref.doc().id,
+        id: FirestoreDoc(ref).id,
       })) as unknown) as Doc[] // solve this annoying TS bug 😅
 
       // add to cache
@@ -525,11 +542,11 @@ export const useCollection = <
       }
 
       // add to network
-      const batch = fuego.db.batch()
+      const batch = writeBatch(fuego.db)
 
       docsToAdd.forEach(({ id, ...doc }) => {
         // take the ID out of the document
-        batch.set(ref.doc(id), doc)
+        batch.set(FirestoreDoc(ref, id), doc)
       })
 
       return batch.commit().then(() => {
