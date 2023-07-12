@@ -1,5 +1,5 @@
 {
-  "name": "@nandorojo/swr-firestore",
+  "name": "@alexandersergan/swr-firestore",
   "version": "0.16.0",
   "description": "SWR React hooks for Firestore, that you can actually use in production, on every screen.",
   "main": "lib/commonjs/index.js",
@@ -25,13 +25,13 @@
     "ios",
     "android"
   ],
-  "repository": "https://github.com/nandorojo/swr-firestore",
-  "author": "Fernando Rojo <frojo@sas.upenn.edu> (https://github.com/nandorojo)",
+  "repository": "https://github.com/alexandersergan/swr-firestore",
+  "author": "Alexander Sergan <veteroque@gmail.com> (https://github.com/alexandersergan)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/nandorojo/swr-firestore/issues"
+    "url": "https://github.com/alexandersergan/swr-firestore/issues"
   },
-  "homepage": "https://github.com/nandorojo/swr-firestore#readme",
+  "homepage": "https://github.com/alexandersergan/swr-firestore#readme",
   "devDependencies": {
     "@commitlint/config-conventional": "^17.6.6",
     "@firebase/firestore-types": "^3.0.0",
