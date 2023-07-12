@@ -1,4 +1,4 @@
-import useSWR, { mutate, ConfigInterface } from 'swr'
+import useSWR, { mutate, SWRConfiguration } from 'swr'
 import type { SetOptions, FieldValue } from '@firebase/firestore-types'
 import { fuego } from '../context'
 import { useRef, useEffect, useCallback } from 'react'
@@ -36,7 +36,7 @@ type Options<Doc extends Document = Document> = {
    * Default: `true`
    */
   ignoreFirestoreDocumentSnapshotField?: boolean
-} & ConfigInterface<Doc | null>
+} & SWRConfiguration<Doc | null>
 
 type ListenerReturnType<Doc extends Document = Document> = {
   initialData: Doc

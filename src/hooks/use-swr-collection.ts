@@ -1,4 +1,4 @@
-import useSWR, { mutate as mutateStatic, ConfigInterface } from 'swr'
+import useSWR, { mutate as mutateStatic, SWRConfiguration, } from 'swr'
 import { fuego } from '../context'
 import { useRef, useEffect, useMemo, useCallback } from 'react'
 // import { useMemoOne as useMemo } from 'use-memo-one'
@@ -285,7 +285,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
 
 export type CollectionSWROptions<
   Doc extends Document = Document
-> = ConfigInterface<Doc[] | null>
+> = SWRConfiguration<Doc[] | null>
 /**
  * Call a Firestore Collection
  * @template Doc
