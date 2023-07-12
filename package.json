@@ -1,5 +1,5 @@
 {
-  "name": "@nandorojo/swr-firestore",
+  "name": "@alexandersergan/swr-firestore",
   "version": "0.16.0",
   "description": "SWR React hooks for Firestore, that you can actually use in production, on every screen.",
   "main": "lib/commonjs/index.js",
@@ -18,43 +18,43 @@
     "release": "release-it",
     "example": "yarn --cwd example",
     "pods": "cd example/ios && node -e \"process.exit(require('os').platform() === 'darwin')\" || pod install",
-    "bootstrap": "yarn example && yarn && yarn pods"
+    "bootstrap": "yarn example && yarn"
   },
   "keywords": [
     "react-native",
     "ios",
     "android"
   ],
-  "repository": "https://github.com/nandorojo/swr-firestore",
-  "author": "Fernando Rojo <frojo@sas.upenn.edu> (https://github.com/nandorojo)",
+  "repository": "https://github.com/alexandersergan/swr-firestore",
+  "author": "Alexander Sergan <veteroque@gmail.com> (https://github.com/alexandersergan)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/nandorojo/swr-firestore/issues"
+    "url": "https://github.com/alexandersergan/swr-firestore/issues"
   },
-  "homepage": "https://github.com/nandorojo/swr-firestore#readme",
+  "homepage": "https://github.com/alexandersergan/swr-firestore#readme",
   "devDependencies": {
-    "@commitlint/config-conventional": "^8.3.4",
-    "@firebase/firestore-types": "^1.10.1",
-    "@react-native-community/bob": "^0.10.1",
-    "@react-native-community/eslint-config": "^0.0.7",
-    "@release-it/conventional-changelog": "^1.1.0",
-    "@types/jest": "^25.1.2",
-    "@types/lodash.get": "^4.4.6",
-    "@types/lodash.set": "^4.3.6",
-    "@types/react": "^16.9.19",
-    "@types/react-native": "0.61.10",
-    "commitlint": "^8.3.4",
-    "eslint": "^6.8.0",
-    "eslint-config-nando": "^1.0.9",
-    "eslint-config-prettier": "^6.10.0",
-    "eslint-plugin-prettier": "^3.1.2",
-    "firebase": "^7.14.1",
-    "jest": "^25.1.0",
-    "prettier": "^1.19.1",
-    "react": "~16.9.0",
-    "react-native": "~0.61.5",
-    "release-it": "^12.6.3",
-    "typescript": "^4.1.0-dev.20201015"
+    "@commitlint/config-conventional": "^17.6.6",
+    "@firebase/firestore-types": "^3.0.0",
+    "@react-native-community/bob": "^0.17.1",
+    "@react-native-community/eslint-config": "^3.2.0",
+    "@release-it/conventional-changelog": "^7.0.0",
+    "@types/jest": "^29.5.3",
+    "@types/lodash.get": "^4.4.7",
+    "@types/lodash.set": "^4.3.7",
+    "@types/react": "^18.2.14",
+    "@types/react-native": "0.72.2",
+    "commitlint": "^17.6.6",
+    "eslint": "^8.44.0",
+    "eslint-config-nando": "^1.1.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "firebase": "^10.0.0",
+    "jest": "^29.6.1",
+    "prettier": "^3.0.0",
+    "react": "~18.2.0",
+    "react-native": "~0.72.2",
+    "release-it": "^16.1.0",
+    "typescript": "^5.1.6"
   },
   "peerDependencies": {
     "react": "*"
@@ -105,6 +105,6 @@
   "dependencies": {
     "lodash.get": "^4.4.2",
     "lodash.set": "^4.3.2",
-    "swr": "^0.2.0"
+    "swr": "^2.2.0"
   }
 }

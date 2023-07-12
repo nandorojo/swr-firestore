@@ -1,4 +1,4 @@
-import useSWR, { mutate, ConfigInterface } from 'swr'
+import useSWR, { mutate, SWRConfiguration } from 'swr'
 import type { SetOptions, FieldValue } from '@firebase/firestore-types'
 import { fuego } from '../context'
 import { useRef, useEffect, useCallback } from 'react'
@@ -36,7 +36,7 @@ type Options<Doc extends Document = Document> = {
    * Default: `true`
    */
   ignoreFirestoreDocumentSnapshotField?: boolean
-} & ConfigInterface<Doc | null>
+} & SWRConfiguration<Doc | null>
 
 type ListenerReturnType<Doc extends Document = Document> = {
   initialData: Doc
@@ -287,10 +287,10 @@ export const useDocument = <
     swrOptions
   )
 
-  const { data, isValidating, revalidate, mutate: connectedMutate, error } = swr
+  const { data, isValidating, mutate: connectedMutate, error } = swr
 
   // if listen changes,
-  // we run revalidate.
+  // we run `mutate()` as `revalidate`.
   // This triggers SWR to fetch again
   // Why? because we don't want to put listen or memoQueryString
   // in the useSWR key. If we did, then we couldn't mutate
@@ -298,7 +298,7 @@ export const useDocument = <
   // and we updated the proper `user` dictionary, it wouldn't mutate, because of
   // the key.
   // thus, we move the `listen` and `queryString` options to refs passed to `useSWR`,
-  // and we call `revalidate` if either of them change.
+  // and we call `mutate()` as `revalidate` if either of them change.
   const mounted = useRef(false)
   useEffect(() => {
     if (mounted.current) revalidateRef.current()
@@ -307,9 +307,9 @@ export const useDocument = <
 
   // this MUST be after the previous effect to avoid duplicate initial validations.
   // only happens on updates, not initial mount.
-  const revalidateRef = useRef(swr.revalidate)
+  const revalidateRef = useRef(swr.mutate)
   useEffect(() => {
-    revalidateRef.current = swr.revalidate
+    revalidateRef.current = swr.mutate
   })
 
   useEffect(() => {
@@ -345,7 +345,7 @@ export const useDocument = <
         })
       }
       if (!path) return null
-      return fuego.db.doc(path).set(data, options)
+      return fuego.db.doc(path).set(data, options as SetOptions)
     },
     [path, listen, connectedMutate]
   )
@@ -379,7 +379,6 @@ export const useDocument = <
   return {
     data,
     isValidating,
-    revalidate,
     mutate: connectedMutate,
     error,
     set,

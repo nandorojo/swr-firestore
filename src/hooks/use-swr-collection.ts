@@ -1,4 +1,4 @@
-import useSWR, { mutate as mutateStatic, ConfigInterface } from 'swr'
+import useSWR, { mutate as mutateStatic, SWRConfiguration, } from 'swr'
 import { fuego } from '../context'
 import { useRef, useEffect, useMemo, useCallback } from 'react'
 // import { useMemoOne as useMemo } from 'use-memo-one'
@@ -285,7 +285,7 @@ const createListenerAsync = async <Doc extends Document = Document>(
 
 export type CollectionSWROptions<
   Doc extends Document = Document
-> = ConfigInterface<Doc[] | null>
+> = SWRConfiguration<Doc[] | null>
 /**
  * Call a Firestore Collection
  * @template Doc
@@ -467,9 +467,9 @@ export const useCollection = <
 
   // this MUST be after the previous effect to avoid duplicate initial validations.
   // only happens on updates, not initial mounting
-  const revalidateRef = useRef(swr.revalidate)
+  const revalidateRef = useRef(swr.mutate)
   useEffect(() => {
-    revalidateRef.current = swr.revalidate
+    revalidateRef.current = swr.mutate
   })
 
   useEffect(() => {
@@ -491,7 +491,7 @@ export const useCollection = <
     if (path) collectionCache.addCollectionToCache(path, memoQueryString)
   }, [path, memoQueryString])
 
-  const { data, isValidating, revalidate, mutate, error } = swr
+  const { data, isValidating, mutate, error } = swr
 
   /**
    * `add(data)`: Extends the Firestore document [`add` function](https://firebase.google.com/docs/firestore/manage-data/add-data).
@@ -545,7 +545,6 @@ export const useCollection = <
   return {
     data,
     isValidating,
-    revalidate,
     mutate,
     error,
     add,
