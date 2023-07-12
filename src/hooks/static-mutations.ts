@@ -93,7 +93,7 @@ data: ${JSON.stringify(data)}`
     )
   })
 
-  return fuego.db.doc(path).set(data, options)
+  return fuego.db.doc(path).set(data, options as SetOptions )
 }
 
 const update = <
